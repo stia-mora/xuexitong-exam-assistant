@@ -1,0 +1,23 @@
+# 课程数据（隐私）
+data/browser-profile/
+data/courses/
+data/tmp/
+
+# Agent 本地副本
+.agents/
+.playwright-cli/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

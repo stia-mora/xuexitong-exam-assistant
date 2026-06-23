@@ -1,0 +1,19 @@
+name: qimokaisi-exam
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - mineru[pipeline]==3.1.0
+      - playwright
+      - pypdf
+      - python-pptx
+      - pydantic
+      - typer
+      - rich
+      - jinja2
+      - beautifulsoup4
+      - markdownify
+      - notebooklm-py[browser]==0.5.0

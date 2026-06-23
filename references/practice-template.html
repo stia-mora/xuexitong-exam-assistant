@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《COURSE_NAME》期末复习 | YEAR</title>
+<style>
+:root {
+  --bg: #f8f9fa; --card-bg: #fff; --text: #212529; --muted: #6c757d;
+  --border: #dee2e6; --p0: #dc3545; --p1: #fd7e14; --p2: #0d6efd;
+  --accent: #0d6efd; --success: #198754;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.w { max-width: 860px; margin: 0 auto; padding: 20px; }
+.h { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; padding: 28px 20px; text-align: center; border-radius: 12px; margin-bottom: 20px; }
+.h h1 { font-size: 1.5rem; margin-bottom: 4px; } .h .sub { font-size: .85rem; opacity: .8; }
+.ec { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.ec a { background: var(--card-bg); border: 2px solid var(--border); border-radius: 10px; padding: 18px; text-decoration: none; color: var(--text); transition: all .2s; display: block; }
+.ec a:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.ec .ic { font-size: 1.6rem; margin-bottom: 4px; } .ec h3 { font-size: 1rem; color: var(--accent); margin-bottom: 4px; } .ec p { font-size: .8rem; color: var(--muted); }
+.summary { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+.summary h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 10px; }
+.stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.stat { background: #f0f4ff; padding: 8px 14px; border-radius: 6px; font-size: .85rem; } .stat strong { color: var(--accent); }
+.pm { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.p { flex: 1; min-width: 180px; border-radius: 10px; padding: 18px; color: #fff; }
+.p0 { background: var(--p0); } .p1 { background: var(--p1); } .p2 { background: var(--p2); }
+.p h3 { font-size: .95rem; margin-bottom: 6px; } .p ul { list-style: none; font-size: .8rem; } .p li { margin-bottom: 3px; }
+.nv { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; position: sticky; top: 10px; z-index: 10; background: var(--bg); padding: 8px 0; }
+.nv a { font-size: .78rem; padding: 4px 10px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; text-decoration: none; color: var(--text); }
+.nv a:hover { background: #e8eeff; }
+.ch { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+.ch-h { cursor: pointer; padding: 14px 18px; background: #f0f4ff; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.ch-h:hover { background: #e8eeff; } .ch-h h3 { font-size: 1rem; } .ch-b { padding: 18px; }
+.kn { margin-bottom: 14px; } .kn h4 { font-size: .9rem; color: var(--accent); margin-bottom: 4px; }
+.kn p { font-size: .85rem; margin-bottom: 2px; }
+.kn .tr { font-size: .8rem; color: #dc3545; background: #fff5f5; padding: 5px 8px; border-radius: 4px; margin-top: 4px; }
+.kn .tr::before { content: "⚠ 易错："; font-weight: bold; }
+.qs-sec { margin-top: 14px; } .qs-sec h4 { font-size: .92rem; color: #333; border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-bottom: 10px; }
+.q { padding: 12px 0; border-bottom: 1px solid #f0f0f0; } .q:last-child { border-bottom: none; }
+.qn { font-weight: bold; color: var(--accent); font-size: .85rem; margin-bottom: 3px; }
+.qs { font-size: .88rem; margin-bottom: 4px; line-height: 1.6; }
+.qo { font-size: .82rem; color: #555; display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 4px 0; }
+details.qa { margin-top: 4px; }
+details.qa summary { font-size: .8rem; color: var(--accent); cursor: pointer; padding: 3px 0; user-select: none; }
+details.qa summary:hover { text-decoration: underline; }
+.ans { font-weight: bold; color: var(--success); font-size: .85rem; margin: 6px 0 3px; padding: 6px 10px; background: #f0fff4; border-radius: 4px; }
+.ana { font-size: .8rem; color: #555; padding: 3px 0; line-height: 1.6; }
+.et { background: #fffbe6; border: 1px solid #ffe082; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+.et h2 { color: #f57f17; font-size: 1rem; margin-bottom: 8px; } .et ul { margin-left: 18px; font-size: .85rem; } .et li { margin-bottom: 5px; }
+.route { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.route h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 10px; } .route ol { margin-left: 18px; font-size: .85rem; } .route li { margin-bottom: 6px; }
+.src { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.src h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 10px; } .src h4 { font-size: .85rem; margin-bottom: 2px; } .src p { font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+.bl { text-align: center; margin: 24px 0; } .bl a { color: var(--accent); text-decoration: none; font-size: .9rem; margin: 0 10px; }
+</style>
+</head>
+<body><div class="w">
+
+<!-- HEADER: Replace COURSE_NAME, UNIVERSITY, YEAR -->
+<div class="h">
+  <h1>📘 COURSE_NAME · 期末复习</h1>
+  <div class="sub">UNIVERSITY · YEAR</div>
+</div>
+
+<!-- ENTRY CARDS: Link to questions.html and mock_exam.html -->
+<div class="ec">
+  <a href="questions.html">
+    <div class="ic">📝</div><h3>全部题库</h3>
+    <p>TOTAL_Q 题 · N_CHAPTERS 章 · 每题含答案与得分导向解析</p>
+  </a>
+  <a href="mock_exam.html">
+    <div class="ic">📋</div><h3>模拟卷</h3>
+    <p>30选+15判+10填+5简答 · 全真模拟</p>
+  </a>
+</div>
+
+<!-- COLLECTION SUMMARY -->
+<div class="summary">
+  <h2>📋 采集摘要</h2>
+  <div class="stats">
+    <div class="stat">📄 <strong>FILE_COUNT</strong> 份课件</div>
+    <div class="stat">📝 <strong>ASSIGN_COUNT</strong> 份作业</div>
+    <div class="stat">📚 <strong>N_CHAPTERS</strong> 个章节</div>
+    <div class="stat">❓ <strong>TOTAL_Q</strong> 题题库</div>
+  </div>
+</div>
+
+<!-- PRIORITY MAP -->
+<div class="pm">
+  <div class="p p0"><h3>🔴 P0 必会</h3><ul>P0_LIST</ul></div>
+  <div class="p p1"><h3>🟠 P1 高频</h3><ul>P1_LIST</ul></div>
+  <div class="p p2"><h3>🔵 P2 加分</h3><ul>P2_LIST</ul></div>
+</div>
+
+<!-- CHAPTER NAV -->
+<div class="nv">
+  CHAPTER_LINKS
+</div>
+
+<!-- EXAM TIPS -->
+<div class="et">
+  <h2>🎯 考试得分提示</h2>
+  <ul>EXAM_TIPS</ul>
+</div>
+
+<!-- CHAPTER CONTENT: Repeat for each chapter -->
+<!--
+<div class="ch" id="chN">
+  <div class="ch-h" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>CHAPTER_TITLE</h3>
+    <span class="badge">PRIORITY</span>
+  </div>
+  <div class="ch-b">
+    <div class="kn"><h4>SECTION_TITLE</h4>
+      <p>CONTENT</p>
+      <div class="tr">TRAP_NOTE</div>
+    </div>
+    <div class="qs-sec"><h4>📝 精选练习题</h4>
+      EMBEDDED_QUESTIONS
+    </div>
+  </div>
+</div>
+-->
+
+<!-- REVIEW ROUTE -->
+<div class="route">
+  <h2>🗺️ 推荐复习路线</h2>
+  <ol>ROUTE_ITEMS</ol>
+</div>
+
+<!-- SOURCE INDEX -->
+<div class="src">
+  <h2>📚 来源索引</h2>
+  <h4>课件文件</h4><p>MD_FILE_LIST</p>
+  <h4>作业</h4><p>ASSIGN_LIST</p>
+</div>
+
+</div></body></html>

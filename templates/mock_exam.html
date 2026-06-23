@@ -1,0 +1,644 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>模拟卷 · 操作系统原理</title><style>
+:root{--bg:#f8f9fa;--c:#fff;--t:#212529;--m:#6c757d;--b:#dee2e6;--a:#0d6efd;--s:#198754}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--t);line-height:1.7}
+.w{max-width:860px;margin:0 auto;padding:20px}
+.h{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:28px 20px;text-align:center;border-radius:12px;margin-bottom:24px}
+.h h1{font-size:1.5rem;margin-bottom:6px}
+.h .sub{font-size:.85rem;opacity:.8;margin-top:2px}
+.h a{color:#8ab4f8;text-decoration:none}
+.h .nav{margin-top:10px;font-size:.85rem}
+.sec{background:var(--c);border:1px solid var(--b);border-radius:10px;margin-bottom:20px;overflow:hidden}
+.sh{padding:14px 18px;background:#f0f4ff;border-bottom:2px solid var(--a);font-weight:bold;font-size:1rem;display:flex;justify-content:space-between;align-items:center}
+.sd{font-size:.82rem;color:var(--m);padding:8px 18px;background:#fafbfc;border-bottom:1px solid var(--b)}
+.q{padding:16px 18px;border-bottom:1px solid #f0f0f0}
+.q:last-child{border-bottom:none}
+.qn{font-weight:bold;color:var(--a);font-size:.9rem;margin-bottom:4px}
+.qs{font-size:.92rem;margin-bottom:6px;line-height:1.6}
+.qo{font-size:.85rem;color:#555;display:flex;flex-wrap:wrap;gap:6px 24px;margin:6px 0}
+details.qa{margin-top:6px}
+details.qa summary{font-size:.82rem;color:var(--a);cursor:pointer;padding:4px 0;user-select:none}
+details.qa summary:hover{text-decoration:underline}
+.ans{font-weight:bold;color:var(--s);font-size:.9rem;margin:8px 0 4px;padding:8px 12px;background:#f0fff4;border-radius:6px}
+.ana{font-size:.84rem;color:#555;padding:4px 0;line-height:1.6}
+.bl{text-align:center;margin:24px 0}
+.bl a{color:var(--a);text-decoration:none;font-size:.9rem;margin:0 10px}
+.footer{text-align:center;color:var(--m);font-size:.78rem;padding:16px}
+.sec-hint{font-size:.78rem;color:var(--m);margin-top:4px}
+</style></head><body><div class="w">
+<div class="h"><h1>📋 模拟卷</h1><div class="sub">《操作系统原理》 · 苏州大学应用技术学院 · 2026</div><div class="sub sec-hint">共60题 · 30选择 + 15判断 + 10填空 + 5简答</div><div class="nav"><a href="practice.html">← 返回复习入口</a> | <a href="questions.html">→ 全部题库</a></div></div>
+<div class="sec"><div class="sh">一、单选题<span style="font-weight:normal;font-size:.85rem">（共30题）</span></div>
+<div class="sd">📝 请选出每题的唯一正确选项，将答案填在题号前的括号内。</div>
+<div class="q"><div class="qn">1. [单选题]</div>
+<div class="qs">多道程序设计是指( )。</div>
+<div class="qo">
+<span>A. 多台计算机同时运行程序</span>
+<span>B. 一台计算机运行多个程序</span>
+<span>C. 内存中同时存放多道程序交替执行</span>
+<span>D. 一台CPU同时执行多道程序</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：多道程序=内存中同时存放多道程序，宏观并行微观串行（交替使用CPU）。D错误——单CPU不可能真正同时执行。</div>
+</details>
+</div>
+<div class="q"><div class="qn">2. [单选题]</div>
+<div class="qs">多道批处理系统的主要缺点是( )。</div>
+<div class="qo">
+<span>A. 不能并发执行</span>
+<span>B. 缺少交互性</span>
+<span>C. CPU利用率低</span>
+<span>D. 以上都不是</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：批处理优势是资源利用率高，致命缺点是用户无法与程序交互。多道批处理是可以并发执行的。</div>
+</details>
+</div>
+<div class="q"><div class="qn">3. [单选题]</div>
+<div class="qs">如果为每个作业只建立一个进程，为照顾短作业应采用( )调度算法。</div>
+<div class="qo">
+<span>A. FCFS</span>
+<span>B. 时间片轮转</span>
+<span>C. 多级反馈队列</span>
+<span>D. SJF(短作业优先)</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：D</div>
+<div class="ana">这题核心知识点：SJF/SPF专门照顾短作业，降低平均等待时间。每题只有一个进程时多级反馈队列优势不明显。</div>
+</details>
+</div>
+<div class="q"><div class="qn">4. [单选题]</div>
+<div class="qs">循环等待是死锁的( )。</div>
+<div class="qo">
+<span>A. 充分条件</span>
+<span>B. 必要条件</span>
+<span>C. 充要条件</span>
+<span>D. 无关条件</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：循环等待=死锁的必要不充分条件。有死锁必有循环等待，有循环等待不一定死锁（若同类资源>1）。当每类资源只有一个时才是充要条件。</div>
+</details>
+</div>
+<div class="q"><div class="qn">5. [单选题]</div>
+<div class="qs">生产者-消费者问题中，empty信号量表示( )。</div>
+<div class="qo">
+<span>A. 满缓冲区数</span>
+<span>B. 空缓冲区数</span>
+<span>C. 互斥信号量</span>
+<span>D. 消费者数量</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：生产者-消费者用三个信号量：empty(空槽数，初值N)、full(满槽数，初值0)、mutex(互斥，初值1)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">6. [单选题]</div>
+<div class="qs">一个运行的进程用完了分配给它的时间片后变为( )。</div>
+<div class="qo">
+<span>A. 就绪</span>
+<span>B. 执行</span>
+<span>C. 阻塞</span>
+<span>D. 撤销</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：A</div>
+<div class="ana">这题核心知识点：时间片用完→运行→就绪（重新排队等CPU）。运行→阻塞的条件是等待某事件（如I/O请求）。</div>
+</details>
+</div>
+<div class="q"><div class="qn">7. [单选题]</div>
+<div class="qs">操作系统的两个最主要特征是( )。</div>
+<div class="qo">
+<span>A. 并发和共享</span>
+<span>B. 方便和有效</span>
+<span>C. 虚拟和异步</span>
+<span>D. 并发和虚拟</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：D</div>
+<div class="ana">这题核心知识点：OS四大特征——并发、共享、虚拟、异步。并发和虚拟是最核心的两个。并发≠并行（并发是宏观并行微观串行）。</div>
+</details>
+</div>
+<div class="q"><div class="qn">8. [单选题]</div>
+<div class="qs">SPOOLing系统将独占设备改造为( )。</div>
+<div class="qo">
+<span>A. 虚拟设备</span>
+<span>B. 共享设备</span>
+<span>C. 字符设备</span>
+<span>D. 块设备</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：SPOOLing用磁盘模拟独占设备，使多个进程可'同时'使用(假脱机)。输入井/输出井在磁盘上。</div>
+</details>
+</div>
+<div class="q"><div class="qn">9. [单选题]</div>
+<div class="qs">下面各项中，( )不是引入操作系统的最主要目的。</div>
+<div class="qo">
+<span>A. 方便用户使用</span>
+<span>B. 提高系统资源利用率</span>
+<span>C. 提高计算机的运行速度</span>
+<span>D. 提高系统吞吐量</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：OS主要目的是方便性和有效性（资源利用率+吞吐量），提高运行速度主要靠硬件。</div>
+</details>
+</div>
+<div class="q"><div class="qn">10. [单选题]</div>
+<div class="qs">两级页表的主要作用是( )。</div>
+<div class="qo">
+<span>A. 加快地址转换</span>
+<span>B. 减少页表占用的连续内存空间</span>
+<span>C. 减少缺页中断</span>
+<span>D. 提高内存利用率</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：两级页表=将大页表分散存放，避免要求连续的大内存块。外层页表指向内层页表，内层页表指向物理块。</div>
+</details>
+</div>
+<div class="q"><div class="qn">11. [单选题]</div>
+<div class="qs">从用户的观点看，操作系统是( )。</div>
+<div class="qo">
+<span>A. 由若干层次的程序组成的有机体</span>
+<span>B. 用户与计算机之间的接口</span>
+<span>C. 控制和管理计算机资源的软件</span>
+<span>D. 合理地组织计算机工作流程的软件</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：用户视角OS=接口，资源管理视角OS=资源管理者。A是分层结构描述，C/D是功能描述但不是用户视角。</div>
+</details>
+</div>
+<div class="q"><div class="qn">12. [单选题]</div>
+<div class="qs">FAT文件系统属于( )。</div>
+<div class="qo">
+<span>A. 连续组织</span>
+<span>B. 隐式链接</span>
+<span>C. 显式链接</span>
+<span>D. 索引组织</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：FAT=File Allocation Table=显式链接。所有盘块的链接指针集中存储在FAT表中，一个文件的所有盘块号通过FAT表链追踪。</div>
+</details>
+</div>
+<div class="q"><div class="qn">13. [单选题]</div>
+<div class="qs">DMA方式中数据传送在( )之间进行。</div>
+<div class="qo">
+<span>A. CPU和内存</span>
+<span>B. CPU和设备</span>
+<span>C. 设备和内存</span>
+<span>D. 设备和设备</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：DMA(Direct Memory Access)=设备和内存直接交换数据，CPU只在开始和结束时参与。</div>
+</details>
+</div>
+<div class="q"><div class="qn">14. [单选题]</div>
+<div class="qs">前趋图是一个( )。</div>
+<div class="qo">
+<span>A. 有向无环图</span>
+<span>B. 无向图</span>
+<span>C. 有向有环图</span>
+<span>D. 树</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：A</div>
+<div class="ana">这题核心知识点：前趋图(Precedence Graph)=有向无环图(DAG)。边表示偏序关系，有环=循环依赖无法执行。</div>
+</details>
+</div>
+<div class="q"><div class="qn">15. [单选题]</div>
+<div class="qs">设系统中有n(n>2)个进程，且当前不在执行进程调度程序，不可能发生的情况是( )。</div>
+<div class="qo">
+<span>A. 无运行进程有2个就绪进程n个等待进程</span>
+<span>B. 有1个运行进程无就绪进程n-1个等待进程</span>
+<span>C. 有1个运行进程1个就绪进程n-2个等待进程</span>
+<span>D. 有1个运行进程n-1个就绪进程无等待进程</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：A</div>
+<div class="ana">这题核心知识点：无运行进程但有就绪进程不可能——就绪进程存在时调度程序一定会选一个运行（除非调度程序本身没在执行但题目说'当前不在执行进程调度程序'可能指临界区内）。关键是A场景下没有运行进程却有就绪进程，这违反了CPU必须被某个进程占用的原则。</div>
+</details>
+</div>
+<div class="q"><div class="qn">16. [单选题]</div>
+<div class="qs">虚拟存储器最主要的特征是( )。</div>
+<div class="qo">
+<span>A. 离散性</span>
+<span>B. 多次性</span>
+<span>C. 对换性</span>
+<span>D. 虚拟性</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：D</div>
+<div class="ana">这题核心知识点：虚拟存储器四特征——离散性、多次性(分多次装入)、对换性(可换入换出)、虚拟性(逻辑扩充内存)。虚拟性是最核心特征。</div>
+</details>
+</div>
+<div class="q"><div class="qn">17. [单选题]</div>
+<div class="qs">I/O控制方式中CPU干预最少的是( )。</div>
+<div class="qo">
+<span>A. 程序直接控制</span>
+<span>B. 中断驱动</span>
+<span>C. DMA</span>
+<span>D. 通道方式</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：D</div>
+<div class="ana">这题核心知识点：通道是专用I/O处理器，有独立的通道程序，CPU只需发I/O指令即可完全解放。DMA还需CPU参与启动。</div>
+</details>
+</div>
+<div class="q"><div class="qn">18. [单选题]</div>
+<div class="qs">为解决外存碎片问题可采用( )。</div>
+<div class="qo">
+<span>A. 覆盖技术</span>
+<span>B. 交换技术</span>
+<span>C. 紧凑(Compaction)</span>
+<span>D. 分页技术</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：紧凑=移动已分配区将分散的空闲区合并为大块连续空间。代价高(需大量I/O)，仅在必要时使用。</div>
+</details>
+</div>
+<div class="q"><div class="qn">19. [单选题]</div>
+<div class="qs">允许多个用户以交互方式使用计算机的操作系统称为( )。</div>
+<div class="qo">
+<span>A. 批处理操作系统</span>
+<span>B. 分时操作系统</span>
+<span>C. 实时操作系统</span>
+<span>D. 微机操作系统</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：分时=交互式多用户；批处理=非交互集中处理；实时=强调时间约束。</div>
+</details>
+</div>
+<div class="q"><div class="qn">20. [单选题]</div>
+<div class="qs">破坏死锁的'请求和保持'条件可以通过( )实现。</div>
+<div class="qo">
+<span>A. SPOOLing技术</span>
+<span>B. 资源有序分配</span>
+<span>C. 一次性分配所有资源(静态分配)</span>
+<span>D. 允许剥夺资源</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：一次性分配=进程启动时申请所有资源，不再运行时请求新资源。缺点是资源利用率低。</div>
+</details>
+</div>
+<div class="q"><div class="qn">21. [单选题]</div>
+<div class="qs">系统产生死锁是指( )。</div>
+<div class="qo">
+<span>A. 系统发生重大故障</span>
+<span>B. 若干进程同时处于阻塞状态</span>
+<span>C. 若干进程等待被其他进程占用的资源而无限期等待</span>
+<span>D. 请求资源数大于系统提供的资源数</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：死锁本质=互相等待对方持有的资源→都阻塞→无限等待。B不准确（可能各自独立阻塞），D是资源不足不一定死锁。</div>
+</details>
+</div>
+<div class="q"><div class="qn">22. [单选题]</div>
+<div class="qs">银行家算法中，当系统处于( )时一定不会发生死锁。</div>
+<div class="qo">
+<span>A. 不安全状态</span>
+<span>B. 安全状态</span>
+<span>C. 死锁状态</span>
+<span>D. 临界状态</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：安全状态=存在一个安全序列可使所有进程完成→不会死锁。不安全状态不一定死锁但可能死锁。银行家算法确保系统始终处于安全状态。</div>
+</details>
+</div>
+<div class="q"><div class="qn">23. [单选题]</div>
+<div class="qs">进程调度又称为( )。</div>
+<div class="qo">
+<span>A. 高级调度</span>
+<span>B. 中级调度</span>
+<span>C. 低级调度</span>
+<span>D. 作业调度</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：进程调度=低级调度，频率最高，从就绪队列选进程分配CPU。作业调度=高级调度，频率低。</div>
+</details>
+</div>
+<div class="q"><div class="qn">24. [单选题]</div>
+<div class="qs">程序顺序执行的特征不包括( )。</div>
+<div class="qo">
+<span>A. 顺序性</span>
+<span>B. 封闭性</span>
+<span>C. 间断性</span>
+<span>D. 可再现性</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：顺序执行=顺序性+封闭性+可再现性。间断性是并发执行的特征。</div>
+</details>
+</div>
+<div class="q"><div class="qn">25. [单选题]</div>
+<div class="qs">UNIX文件系统采用( )组织方式。</div>
+<div class="qo">
+<span>A. 连续组织</span>
+<span>B. 链接组织</span>
+<span>C. 单级索引</span>
+<span>D. 多级混合索引</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：D</div>
+<div class="ana">这题核心知识点：UNIX inode=直接块(10个)+一级间接块+二级间接块+三级间接块。小文件用直接块(快)，大文件用间接块(容量大)，兼顾效率与容量。</div>
+</details>
+</div>
+<div class="q"><div class="qn">26. [单选题]</div>
+<div class="qs">文件的逻辑结构是( )视角的组织形式。</div>
+<div class="qo">
+<span>A. 存储介质上的</span>
+<span>B. 用户可见的</span>
+<span>C. 外存存放的</span>
+<span>D. 物理存放的</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：逻辑结构=用户视角(流式文件、记录式文件)；物理结构=存储视角(连续、链接、索引分配)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">27. [单选题]</div>
+<div class="qs">时间片轮转调度算法中，时间片设得太小会导致( )。</div>
+<div class="qo">
+<span>A. 响应时间变长</span>
+<span>B. 进程切换频繁系统开销增大</span>
+<span>C. 退化为FCFS</span>
+<span>D. 长作业饥饿</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：时间片太小→频繁上下文切换→系统开销大；太大→退化为FCFS→响应时间变长。通常设为10-100ms。</div>
+</details>
+</div>
+<div class="q"><div class="qn">28. [单选题]</div>
+<div class="qs">文件-记录-数据项的层次关系是( )。</div>
+<div class="qo">
+<span>A. 文件>记录>数据项</span>
+<span>B. 记录>文件>数据项</span>
+<span>C. 数据项>记录>文件</span>
+<span>D. 文件>数据项>记录</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：A</div>
+<div class="ana">这题核心知识点：数据组织层次——文件由若干记录组成，记录由若干数据项组成。数据项是最低级的数据组织形式。</div>
+</details>
+</div>
+<div class="q"><div class="qn">29. [单选题]</div>
+<div class="qs">在分页系统中，逻辑地址的页内偏移量位数由( )决定。</div>
+<div class="qo">
+<span>A. 物理内存大小</span>
+<span>B. 页面大小</span>
+<span>C. 页表大小</span>
+<span>D. 进程大小</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：B</div>
+<div class="ana">这题核心知识点：页内偏移量位数=log2(页面大小)。如4KB页面→偏移量12位。页号位数=逻辑地址总位数-偏移量位数。</div>
+</details>
+</div>
+<div class="q"><div class="qn">30. [单选题]</div>
+<div class="qs">操作系统的最主要设计目标是( )。</div>
+<div class="qo">
+<span>A. 方便性和可扩展性</span>
+<span>B. 有效性和开放性</span>
+<span>C. 方便性和有效性</span>
+<span>D. 有效性和可扩展性</span>
+</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：C</div>
+<div class="ana">这题核心知识点：OS两大设计目标——方便性（用户角度）和有效性（系统角度）。可扩展性和开放性是次要目标。</div>
+</details>
+</div>
+</div>
+<div class="sec"><div class="sh">二、判断题<span style="font-weight:normal;font-size:.85rem">（共15题）</span></div>
+<div class="sd">📝 正确的打√，错误的打×。注意：'一定''必须''所有'等绝对化表述往往是错的。</div>
+<div class="q"><div class="qn">31. [判断题]</div>
+<div class="qs">链接组织方式会产生外存碎片。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：链接组织用指针串联离散盘块，不需要连续空间，故无外存碎片。但可能有内部碎片(最后一盘块未满)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">32. [判断题]</div>
+<div class="qs">操作系统的设计必须要保证进程具有可再现性。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：可再现性是顺序执行的特性。并发执行的进程天然不具有可再现性（结果取决于执行速度），OS可通过同步机制保障正确性但不保证可再现性。</div>
+</details>
+</div>
+<div class="q"><div class="qn">33. [判断题]</div>
+<div class="qs">文件名是文件的唯一标识。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：同一目录下文件名唯一，不同目录可有同名文件。文件唯一标识是FCB中的inode号或文件控制块。</div>
+</details>
+</div>
+<div class="q"><div class="qn">34. [判断题]</div>
+<div class="qs">死锁预防中，SPOOLing技术可以破坏互斥条件。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：SPOOLing将独占设备(如打印机)改造为共享设备(用磁盘输出井模拟)，从而破坏了互斥条件。注意SPOOLing主要是设备管理技术，只是恰好能破坏互斥条件。</div>
+</details>
+</div>
+<div class="q"><div class="qn">35. [判断题]</div>
+<div class="qs">P操作可能使信号量的值增加。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：P操作=S-1（减少），V操作=S+1（增加）。P永远使S减1。</div>
+</details>
+</div>
+<div class="q"><div class="qn">36. [判断题]</div>
+<div class="qs">死锁是指进程之间互相等待对方资源而导致都无法推进的现象。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：死锁定义=互相等待对方手里的资源→都阻塞→无法推进。需外力干涉才能打破（如撤销进程或剥夺资源）。</div>
+</details>
+</div>
+<div class="q"><div class="qn">37. [判断题]</div>
+<div class="qs">采用多道程序设计的系统中，程序道数越多，系统的效率就越高。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：程序道数过多会导致内存竞争、CPU频繁切换（抖动），反而降低效率。存在最优道数。</div>
+</details>
+</div>
+<div class="q"><div class="qn">38. [判断题]</div>
+<div class="qs">一个进程被挂起后，它将不再参与对CPU的竞争。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：挂起(Suspend)=进程被调到外存，不再在内存中，当然不参与CPU竞争。与阻塞不同——阻塞仍在内存只是等待事件。</div>
+</details>
+</div>
+<div class="q"><div class="qn">39. [判断题]</div>
+<div class="qs">LRU算法需要寄存器或栈等硬件支持。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：LRU需要记录每页最近被访问的时间/顺序。寄存器法=每页一个移位寄存器；栈法=维护页面访问顺序栈。</div>
+</details>
+</div>
+<div class="q"><div class="qn">40. [判断题]</div>
+<div class="qs">多道批处理操作系统适合于终端作业。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：多道批处理适合大型计算任务不是终端作业。终端作业需要交互性，适合分时系统。</div>
+</details>
+</div>
+<div class="q"><div class="qn">41. [判断题]</div>
+<div class="qs">批处理系统不允许用户随时干预自己程序的运行。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：批处理=用户提交作业后无法交互，只能等待结果。这是批处理和分时系统的本质区别。</div>
+</details>
+</div>
+<div class="q"><div class="qn">42. [判断题]</div>
+<div class="qs">页表的作用是记录每个页面在内存中对应的页框号。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：页表=页面号到页框号(物理块号)的映射表。每进程一个页表。页表项包含块号+状态位+访问位+修改位等。</div>
+</details>
+</div>
+<div class="q"><div class="qn">43. [判断题]</div>
+<div class="qs">银行家算法需要预知每个进程的最大资源需求。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：银行家算法需要Max矩阵(每个进程对每类资源的最大需求)，否则无法判断分配后是否仍处于安全状态。</div>
+</details>
+</div>
+<div class="q"><div class="qn">44. [判断题]</div>
+<div class="qs">顺序文件只能顺序访问不能随机访问。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：错</div>
+<div class="ana">这题核心知识点：定长记录的顺序文件可通过计算偏移量(L×i)实现随机访问。变长记录的顺序文件只能顺序访问。</div>
+</details>
+</div>
+<div class="q"><div class="qn">45. [判断题]</div>
+<div class="qs">管程是一种比信号量更高级的同步机制。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：对</div>
+<div class="ana">这题核心知识点：管程把共享数据和对数据的操作封装在一起，进程通过调用管程中的过程访问共享数据，比信号量更结构化和易用。</div>
+</details>
+</div>
+</div>
+<div class="sec"><div class="sh">三、填空题<span style="font-weight:normal;font-size:.85rem">（共10题）</span></div>
+<div class="sd">📝 在横线上填写正确答案。使用标准术语（如'目态'不能写成'用户态'）。</div>
+<div class="q"><div class="qn">46. [填空题]</div>
+<div class="qs">分区分配算法中，首次适应(FF)的空闲区表按____递增排列。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：地址</div>
+<div class="ana">这题核心知识点：FF=按地址从小到大找第一个满足需求的空闲区；BF=按大小递增；WF=按大小递减；NF=循环查找。</div>
+</details>
+</div>
+<div class="q"><div class="qn">47. [填空题]</div>
+<div class="qs">进程实体由程序段、数据段和____三部分组成。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：PCB（进程控制块）</div>
+<div class="ana">这题核心知识点：进程实体=程序段+数据段+PCB。PCB是进程存在的唯一标志。</div>
+</details>
+</div>
+<div class="q"><div class="qn">48. [填空题]</div>
+<div class="qs">数据项分为基本数据项和____数据项。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：组合</div>
+<div class="ana">这题核心知识点：基本数据项不可再分(如学号)，组合数据项由若干基本数据项组成(如日期=年+月+日)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">49. [填空题]</div>
+<div class="qs">计算机CPU的工作分为系统态和用户态两种，系统态运行操作系统程序，用户应用程序运行在____态。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：用户</div>
+<div class="ana">这题核心知识点：CPU双模式：管态（系统态/核心态）运行OS程序可以执行特权指令；目态（用户态）运行用户程序不能执行特权指令。</div>
+</details>
+</div>
+<div class="q"><div class="qn">50. [填空题]</div>
+<div class="qs">按传输速率I/O设备分为低速设备、中速设备和____设备。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：高速</div>
+<div class="ana">这题核心知识点：键盘鼠标=低速(几B/s~几十B/s)，打印机=中速(KB/s级)，磁盘=高速(MB/s~GB/s级)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">51. [填空题]</div>
+<div class="qs">死锁的四个必要条件是互斥条件、不剥夺条件、请求和保持条件和____。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：循环等待条件</div>
+<div class="ana">这题核心知识点：四条件缺一不可。破坏任一条件即可预防死锁。循环等待≠死锁——它是必要不充分条件。</div>
+</details>
+</div>
+<div class="q"><div class="qn">52. [填空题]</div>
+<div class="qs">程序的三种装入方式是绝对装入、静态重定位装入和____。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：动态运行时装入（动态重定位装入）</div>
+<div class="ana">这题核心知识点：三种装入方式——绝对装入(编译时固定)、静态重定位(装入时转换)、动态重定位(运行时转换)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">53. [填空题]</div>
+<div class="qs">UNIX是典型的____操作系统。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：分时</div>
+<div class="ana">这题核心知识点：OS三种基本类型——批处理、分时、实时。UNIX是多用户分时系统；RT-Thread是实时OS。</div>
+</details>
+</div>
+<div class="q"><div class="qn">54. [填空题]</div>
+<div class="qs">处理机调度的三个层次从高到低依次是高级调度、中级调度和____。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：低级调度（进程调度）</div>
+<div class="ana">这题核心知识点：三级调度——高级(作业)、中级(内存)、低级(进程)。低级调度频率最高。</div>
+</details>
+</div>
+<div class="q"><div class="qn">55. [填空题]</div>
+<div class="qs">为避免用户程序错误使用特权指令，CPU分目态和管态。当CPU处于____态时不允许执行特权指令。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：目</div>
+<div class="ana">这题核心知识点：目态=用户态=受限模式。管态=核心态=特权模式。编译程序、用户程序都在目态运行。</div>
+</details>
+</div>
+</div>
+<div class="sec"><div class="sh">四、简答题<span style="font-weight:normal;font-size:.85rem">（共5题）</span></div>
+<div class="sd">📝 请简要作答。先写定义→再写性质→再写结论。不会完整作答时先写核心定义抢步骤分。</div>
+<div class="q"><div class="qn">56. [简答题]</div>
+<div class="qs">为什么要在设备管理中引入缓冲技术？</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：①缓和CPU与I/O设备之间的速度不匹配(Cache和主存之间也需要缓冲)；②减少对CPU的中断频率，放宽中断响应时间限制；③提高CPU和I/O设备之间的并行操作程度(CPU和设备可同时工作)。</div>
+<div class="ana">这题答题核心点：必须出现——三个目的。常见失分点：只答了第一点(速度不匹配)漏了后面两点。</div>
+</details>
+</div>
+<div class="q"><div class="qn">57. [简答题]</div>
+<div class="qs">简述分页和分段存储管理的主要区别。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：①页是物理单位，段是逻辑单位。②页大小固定(由系统确定)，段大小可变(由用户程序确定)。③分页地址一维(连续)，分段地址二维(段号+段内地址)。④分页对用户透明，分段用户可见。⑤分页可能有内部碎片，分段可能有外部碎片。</div>
+<div class="ana">这题答题核心点：必须出现——五条区别，尤其是'页物理/段逻辑''地址维度''对用户透明性'。常见失分点：只说'页固定段可变'漏了其他四条。</div>
+</details>
+</div>
+<div class="q"><div class="qn">58. [简答题]</div>
+<div class="qs">为什么要引入动态重定位？如何实现？</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：引入原因：①支持程序浮动——程序可在内存中移动；②支持虚拟存储——程序不必全部装入即可运行；③支持内存紧凑——可将分散的程序移动合并空闲区。实现方式：硬件设置重定位寄存器，存放程序在内存中的起始地址。CPU每次访问内存时将逻辑地址+重定位寄存器值=物理地址。</div>
+<div class="ana">这题答题核心点：必须出现——三个原因(浮动/虚拟/紧凑)+重定位寄存器机制。常见失分点：只说'需要地址转换'不解释为什么需要。</div>
+</details>
+</div>
+<div class="q"><div class="qn">59. [简答题]</div>
+<div class="qs">简述三级调度各自的功能和特点。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：①高级调度（作业调度）：从外存后备队列选作业装入内存，创建进程。频率最低（分钟级）。②中级调度（内存调度）：将暂时不能运行的进程调至外存挂起，需要时再调入(对换)。提高内存利用率。③低级调度（进程调度）：从就绪队列选进程分配CPU。频率最高（毫秒级），是OS中最基本的调度。</div>
+<div class="ana">这题答题核心点：必须出现——三级名称+各自操作对象+频率。常见失分点：混淆高级和低级调度的对象(作业 vs 进程)。</div>
+</details>
+</div>
+<div class="q"><div class="qn">60. [简答题]</div>
+<div class="qs">简述作业、程序、进程三者的区别与联系。</div>
+<details class="qa"><summary>查看答案与解析</summary>
+<div class="ans">✅ 答案：程序=静态的代码集合（磁盘上），无生命周期。作业=用户提交给计算机的任务（含程序+数据+说明书）。进程=程序在内存中的执行过程（动态），是资源分配和调度的基本单位。联系：用户提交作业→作业调度将程序加载到内存→创建进程→CPU执行。</div>
+<div class="ana">这题答题核心点：必须出现——程序=静态(磁盘)、作业=任务(宏观)、进程=动态执行(内存)。一静一动一任务。常见失分点：混淆程序和进程；漏作业调度环节。</div>
+</details>
+</div>
+</div>
+<div class="bl"><a href="practice.html">← 返回复习入口</a> | <a href="questions.html">→ 全部题库</a></div>
+<div class="footer">生成时间：2026-06-22 · 基于 xuexitong-exam-assistant</div>
+</div></body></html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《操作系统原理》期末复习 | 2026</title>
+<style>
+:root {
+  --bg: #f8f9fa; --card-bg: #fff; --text: #212529; --muted: #6c757d;
+  --border: #dee2e6; --p0: #dc3545; --p1: #fd7e14; --p2: #0d6efd;
+  --accent: #0d6efd; --success: #198754;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 960px; margin: 0 auto; padding: 20px; }
+
+.header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; padding: 40px 20px; text-align: center; margin-bottom: 24px; border-radius: 12px; }
+.header h1 { font-size: 1.8rem; margin-bottom: 8px; }
+.header .meta { font-size: 0.9rem; opacity: 0.8; }
+
+/* Entry cards for multi-page nav */
+.entry-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:24px; }
+.entry-card { background:var(--card-bg); border:2px solid var(--border); border-radius:12px; padding:20px; text-decoration:none; color:var(--text); transition:all 0.2s; display:block; }
+.entry-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+.entry-card .icon { font-size:1.8rem; margin-bottom:6px; }
+.entry-card h3 { font-size:1rem; margin-bottom:4px; color:var(--accent); }
+.entry-card p { font-size:0.82rem; color:var(--muted); }
+
+.summary { background: var(--card-bg); border-radius: 10px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.summary h2 { font-size: 1.2rem; margin-bottom: 12px; color: var(--accent); }
+.summary .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.summary .stat { background: #f0f4ff; padding: 8px 14px; border-radius: 6px; font-size: 0.9rem; }
+.summary .stat strong { color: var(--accent); }
+
+.priority-map { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.priority { flex: 1; min-width: 200px; border-radius: 10px; padding: 20px; color: #fff; }
+.priority.p0 { background: var(--p0); }
+.priority.p1 { background: var(--p1); }
+.priority.p2 { background: var(--p2); }
+.priority h3 { font-size: 1rem; margin-bottom: 8px; }
+.priority ul { list-style: none; font-size: 0.85rem; }
+.priority li { margin-bottom: 4px; }
+.priority li::before { content: "▸ "; }
+
+.chapter { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+.chapter-header { padding: 16px 20px; background: #f0f4ff; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.chapter-header:hover { background: #e8eeff; }
+.chapter-header h3 { font-size: 1.05rem; }
+.chapter-header .badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; color: #fff; }
+.badge-p0 { background: var(--p0); } .badge-p1 { background: var(--p1); } .badge-p2 { background: var(--p2); }
+.chapter-body { padding: 20px; }
+
+.knowledge { margin-bottom: 16px; }
+.knowledge h4 { font-size: 0.95rem; color: var(--accent); margin-bottom: 6px; }
+.knowledge p { font-size: 0.9rem; margin-bottom: 4px; }
+.knowledge .trap { font-size: 0.85rem; color: var(--p0); background: #fff5f5; padding: 6px 10px; border-radius: 4px; margin-top: 6px; }
+.knowledge .trap::before { content: "⚠ 易错："; font-weight: bold; }
+
+.questions-section { margin-top: 16px; }
+.questions-section h4 { font-size: 1rem; color: #333; margin-bottom: 12px; border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+.question { background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.question .q-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.question .q-num { font-weight: bold; color: var(--accent); font-size: 0.85rem; }
+.question .q-source { font-size: 0.75rem; background: #e9ecef; padding: 2px 8px; border-radius: 10px; color: var(--muted); }
+.question .q-text { font-size: 0.92rem; margin-bottom: 8px; }
+.question .q-options { font-size: 0.88rem; color: #555; margin-bottom: 6px; }
+.question .q-options span { display: inline-block; margin-right: 16px; }
+
+details.q-answer { margin-top:8px; }
+details.q-answer summary { font-size:0.82rem; color:var(--accent); cursor:pointer; padding:4px 0; }
+details.q-answer summary:hover { text-decoration:underline; }
+details.q-answer .correct { font-weight:bold; color:var(--success); margin:8px 0 4px; }
+details.q-answer dl { margin-top:4px; }
+details.q-answer dt { font-weight:bold; color:#333; margin-top:4px; }
+details.q-answer dd { margin-left:16px; margin-bottom:2px; color:#555; font-size:0.88rem; }
+
+.review-route { background: var(--card-bg); border-radius: 10px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.review-route h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 12px; }
+.review-route ol { margin-left: 20px; font-size: 0.9rem; }
+.review-route li { margin-bottom: 8px; }
+
+.source-index { background: var(--card-bg); border-radius: 10px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.source-index h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 12px; }
+.source-index .src-group { margin-bottom: 12px; }
+.source-index .src-group h4 { font-size: 0.9rem; margin-bottom: 4px; }
+.source-index .src-group p { font-size: 0.82rem; color: var(--muted); word-break: break-all; }
+
+.exam-tips { background: #fffbe6; border: 1px solid #ffe082; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.exam-tips h2 { color: #f57f17; font-size: 1.1rem; margin-bottom: 10px; }
+.exam-tips ul { margin-left: 20px; font-size: 0.9rem; }
+.exam-tips li { margin-bottom: 6px; }
+
+.nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.nav a { font-size: 0.82rem; padding: 4px 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; text-decoration: none; color: var(--text); }
+.nav a:hover { background: #e8eeff; }
+
+@media (max-width: 600px) {
+  .container { padding: 12px; } .header { padding: 24px 16px; }
+  .priority-map { flex-direction: column; } .summary .stats { flex-direction: column; gap: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>📘 《操作系统原理》期末复习</h1>
+  <div class="meta">苏州大学应用技术学院 · 孙靓亚 · 2026</div>
+  <div class="meta" style="margin-top:4px">采集时间：2026-06-07 · 88个源文件 · 78份课件MD · 10份作业</div>
+</div>
+
+<!-- Multi-page entry cards -->
+<div class="entry-cards">
+  <a href="questions.html" class="entry-card">
+    <div class="icon">📝</div>
+    <h3>全部题库</h3>
+    <p>154题 · 8个章节 · 每题含答案与得分导向解析 · 原题优先</p>
+  </a>
+  <a href="mock_exam.html" class="entry-card">
+    <div class="icon">📋</div>
+    <h3>模拟卷</h3>
+    <p>30选+15判+10填+5主观 · 全真模拟 · 答案折叠</p>
+  </a>
+</div>
+
+<!-- Collection Summary -->
+<div class="summary">
+  <h2>📋 采集证据摘要</h2>
+  <div class="stats">
+    <div class="stat">📄 <strong>88</strong> 个源文件</div>
+    <div class="stat">✅ <strong>78</strong> 份课件转MD</div>
+    <div class="stat">📝 <strong>10</strong> 份作业</div>
+    <div class="stat">📚 <strong>8</strong> 个章节</div>
+  </div>
+  <p style="font-size:0.85rem;color:var(--muted)">
+  题源构成：老师PPT（主课件 + 题库PPT）为最高优先级题源，平时作业（章节测试题 + 探究性作业）为中高优先级题源。DOC练习题转换失败已排除。
+  </p>
+</div>
+
+<!-- Priority Map -->
+<div class="priority-map">
+  <div class="priority p0"><h3>🔴 P0 必会</h3><ul><li>进程状态转换 & PCB</li><li>信号量机制 (P/V操作)</li><li>死锁：必要条件 & 银行家算法</li><li>分页/分段地址变换</li><li>页面置换算法 (FIFO/LRU)</li></ul></div>
+  <div class="priority p1"><h3>🟠 P1 高频</h3><ul><li>OS定义/功能/基本类型</li><li>调度算法（FCFS/SJF/RR/多级反馈队列）</li><li>进程同步经典问题</li><li>虚拟存储器概念</li><li>I/O控制方式 & SPOOLing</li></ul></div>
+  <div class="priority p2"><h3>🔵 P2 加分</h3><ul><li>国内OS发展历程</li><li>文件系统层次结构</li><li>磁盘调度算法</li><li>管程、互斥锁实现细节</li><li>总线 & DMA详细流程</li></ul></div>
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <a href="#ch1">第1章 概述</a><a href="#ch2">第2章 处理机管理</a><a href="#ch3">第3章 调度与死锁</a><a href="#ch4">第4章 存储器管理</a><a href="#ch5">第5章 虚拟存储器</a><a href="#ch6">第6章 I/O系统</a><a href="#ch7">第7章 文件管理</a><a href="#ch8">第8章 磁盘管理</a><a href="#route">复习路线</a><a href="#sources">来源索引</a>
+</div>
+
+<!-- Exam Tips -->
+<div class="exam-tips">
+  <h2>🎯 考试得分提示</h2>
+  <ul>
+    <li><strong>单选题</strong>：先排除明显错误项，注意"不是""不属于""错误的是"等否定表述；关键字匹配（如"方便性和有效性"=OS设计目标）</li>
+    <li><strong>判断题</strong>：先看边界条件和反例；"一定""必须""所有"等绝对化表述常常是错的</li>
+    <li><strong>填空题</strong>：记住标准术语（如"目态/管态""分时""一次性""虚拟性"），近义词可能不得分</li>
+    <li><strong>简答/论述</strong>：先写定义→再写性质→再写结论；不会完整作答时先写核心定义和关键性质抢步骤分</li>
+    <li><strong>计算题</strong>（银行家算法、页表计算、调度甘特图）：写出公式→代入数据→计算结果，步骤分占比高</li>
+  </ul>
+</div>
+
+<!-- ===== Chapter 1 ===== -->
+<div class="chapter" id="ch1">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第1章 操作系统概述（引论）</h3><span class="badge badge-p2">P2</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge">
+      <h4>1.1 操作系统的定义与目标</h4>
+      <p>OS是配置在计算机硬件上的<strong>第一层软件</strong>，是对硬件系统的首次扩充。主要设计目标：<strong>方便性 + 有效性</strong>。</p>
+      <div class="trap">配置OS后才成为"虚拟计算机"——不要混淆"物理计算机"和"虚拟计算机"的概念。</div>
+    </div>
+    <div class="knowledge">
+      <h4>1.2 OS的作用</h4>
+      <p>① 作为<strong>用户与硬件之间的接口</strong>（命令接口、程序接口/系统调用、图形接口）</p>
+      <p>② 作为<strong>计算机系统资源的管理者</strong>（处理机、存储器、I/O设备、文件）</p>
+      <p>③ 实现了对<strong>计算机资源的抽象</strong>（裸机→虚拟机）</p>
+    </div>
+    <div class="knowledge">
+      <h4>1.3 OS的基本类型与特征</h4>
+      <p><strong>批处理系统</strong>：缺少交互性，但资源利用率高。<strong>分时系统</strong>：交互性强，时间片轮转，响应时间 ∝ 用户数×时间片。<strong>实时系统</strong>：强调实时性和高可靠性。</p>
+      <p><strong>多道程序设计</strong>：内存中同时存放多道程序，宏观并行、微观串行。</p>
+      <div class="trap">分时系统响应时间与"就绪进程数目和时间片长度"有关，而非"进程大小"。</div>
+    </div>
+    <div class="knowledge">
+      <h4>1.4 CPU工作状态</h4>
+      <p><strong>目态（用户态）</strong>：运行用户程序，不允许执行特权指令。<strong>管态（系统态/核心态）</strong>：运行OS程序，可执行一切机器指令。编译程序在<strong>目态</strong>运行。</p>
+    </div>
+    <div class="questions-section">
+      <h4>📝 练习题（题源：老师PPT + 平时作业）</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q1 · 单选题</span><span class="q-source">题源：第1章测试题</span></div><div class="q-text">操作系统的最主要设计目标是( )。</div><div class="q-options"><span>A. 方便性和可扩展性</span><span>B. 有效性和开放性</span><span>C. 方便性和有效性</span><span>D. 有效性和可扩展性</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C（方便性和有效性）</div><dl><dt>这题核心知识点</dt><dd>OS的两大设计目标——方便性（用户角度）和有效性（系统角度）。</dd><dt>易混点</dt><dd>可扩充性和开放性也是OS目标，但"最主要"的是方便性和有效性。有"最"字时选最核心的。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q2 · 单选题</span><span class="q-source">题源：第1章测试题</span></div><div class="q-text">配置了操作系统的计算机称为( )计算机。</div><div class="q-options"><span>A. 共享</span><span>B. 并行</span><span>C. 虚拟</span><span>D. 物理</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C（虚拟）</div><dl><dt>这题核心知识点</dt><dd>OS通过资源抽象将物理机器扩展为功能更强的"虚拟计算机"。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q3 · 单选题</span><span class="q-source">题源：第1章测试题</span></div><div class="q-text">从用户的观点看，操作系统是( )。</div><div class="q-options"><span>A. 由若干层次的程序组成的有机体</span><span>B. 用户与计算机之间的接口</span><span>C. 控制和管理计算机资源的软件</span><span>D. 合理地组织计算机工作流程的软件</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：B（用户与计算机之间的接口）</div><dl><dt>这题核心知识点</dt><dd>不同视角看OS——用户视角→接口；资源管理视角→C和D是功能描述。注意"从资源管理的观点看"则选C。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 2 ===== -->
+<div class="chapter" id="ch2">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第2章 处理机管理（进程描述与控制）</h3><span class="badge badge-p0">P0</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>2.1 前趋图与程序执行</h4><p><strong>前趋图</strong>：有向无环图，描述进程间的执行顺序。典型前趋关系：I→C→P (输入→计算→输出)。</p><p><strong>程序顺序执行</strong>特征：顺序性、封闭性、可再现性。<strong>程序并发执行</strong>特征：间断性、失去封闭性、不可再现性。</p><div class="trap">并发≠并行。并发是宏观并行微观串行（单CPU交替），并行是真正同时执行（多CPU）。</div></div>
+    <div class="knowledge"><h4>2.2 进程概念 & PCB</h4><p><strong>进程</strong>：程序在内存中的一次执行过程，是资源分配和调度的基本单位。进程实体 = 程序段 + 数据段 + PCB。</p><p><strong>PCB</strong>：OS感知进程存在的唯一标志。</p></div>
+    <div class="knowledge"><h4>2.3 进程状态转换 ⭐</h4><p><strong>三态模型</strong>：就绪→运行→阻塞。就绪→运行：被调度选中；运行→就绪：时间片用完；运行→阻塞：等待某事件；阻塞→就绪：等待的事件发生。</p><div class="trap">最重要易错：等待→运行是不可能的！阻塞态必须先经过就绪态才能运行。</div></div>
+    <div class="knowledge"><h4>2.4 进程同步与互斥 ⭐</h4><p><strong>同步</strong>：并发进程间按一定顺序执行（直接制约）。<strong>互斥</strong>：对临界资源的排他性访问（间接制约）。</p><p><strong>互斥四原则</strong>：空闲让进、忙则等待、有限等待、<strong>让权等待</strong>（不能进入时释放CPU）。</p></div>
+    <div class="knowledge"><h4>2.5 信号量机制 ⭐⭐</h4><p><strong>P操作</strong>：S=S-1；若S&lt;0则阻塞。<strong>V操作</strong>：S=S+1；若S≤0则唤醒一个等待进程。S>0=可用资源数，S&lt;0时|S|=等待进程数。</p><div class="trap">信号量初值2当前值-1 → |−1|=1个等待进程。</div></div>
+    <div class="knowledge"><h4>2.6 经典同步问题</h4><p><strong>生产者-消费者</strong>：empty/full/mutex三信号量。<strong>读者-写者</strong>：读共享写互斥。<strong>哲学家进餐</strong>：可能死锁，解法包括限制同时就餐人数。管程：高级同步机制，封装共享数据+操作。</p></div>
+    <div class="questions-section"><h4>📝 练习题（题源：第2章题库PPT + 第2章测试题）</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q4 · 单选题</span><span class="q-source">题源：第2章题库PPT</span></div><div class="q-text">在进程管理中，当( )时，进程从阻塞状态变为就绪状态。</div><div class="q-options"><span>A. 进程被进程调度程序选中</span><span>B. 等待某一事件</span><span>C. 等待的事件发生</span><span>D. 时间片用完</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C（等待的事件发生）</div><dl><dt>这题核心知识点</dt><dd>阻塞→就绪触发条件=等待的事件发生。A→就绪→运行；D→运行→就绪。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q5 · 单选题</span><span class="q-source">题源：第2章题库PPT</span></div><div class="q-text">下列进程状态变化中不可能发生的是( )。</div><div class="q-options"><span>A. 就绪→运行</span><span>B. 运行→就绪</span><span>C. 等待→运行</span><span>D. 等待→就绪</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C（等待→运行）</div><dl><dt>这题核心知识点</dt><dd>等待不能直接跳运行，必须经过就绪态。正确路径：等待→就绪→运行。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q6 · 单选题</span><span class="q-source">题源：第2章题库PPT</span></div><div class="q-text">若Wait、Signal操作的信号量S初值为2，当前值为-1，则表示有( )等待进程。</div><div class="q-options"><span>A. 0个</span><span>B. 1个</span><span>C. 2个</span><span>D. 3个</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：B（1个）</div><dl><dt>这题核心知识点</dt><dd>S<0时|S|=等待进程数。|−1|=1。初值2→当前−1：3次P操作前2个拿到资源，第3个阻塞。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 3 ===== -->
+<div class="chapter" id="ch3">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第3章 处理机调度与死锁</h3><span class="badge badge-p0">P0</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>3.1 调度的层次</h4><p><strong>高级调度</strong>：外存→内存（作业调度）。<strong>低级调度</strong>：内存→CPU（进程调度），频率最高。<strong>中级调度</strong>：挂起/对换，提高内存利用率。</p></div>
+    <div class="knowledge"><h4>3.2 调度算法 ⭐</h4><p><strong>FCFS</strong>：先来先服务。<strong>SJF</strong>：短作业优先，平均等待时间最短。长作业可能饥饿。<strong>HRRN</strong>：响应比=(W+T)/T，兼顾长短。<strong>RR</strong>：时间片轮转。时间片太小→频繁切换，太大→退化为FCFS。<strong>多级反馈队列</strong>：优先级递减、时间片递增，综合最优。</p></div>
+    <div class="knowledge"><h4>3.3 死锁 ⭐⭐</h4><p><strong>四必要条件</strong>：互斥、不剥夺、请求和保持、循环等待。缺一不死锁。</p><p><strong>死锁vs饥饿vs死循环</strong>：死锁=互相等待（至少两个+阻塞态）；饥饿=长期得不到资源（一个+就绪态）；死循环=程序bug（一个+执行态）。</p><div class="trap">循环等待是死锁的必要不充分条件。同类资源>1时有循环等待不一定死锁。</div></div>
+    <div class="knowledge"><h4>3.4 处理策略</h4><p><strong>预防</strong>：破坏四条件之一。<strong>避免</strong>：银行家算法，判断分配后是否安全。<strong>检测与解除</strong>：资源分配图化简、撤销进程。</p></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q7 · 单选题</span><span class="q-source">题源：第3章测试题</span></div><div class="q-text">系统产生死锁是指( )。</div><div class="q-options"><span>A. 系统发生重大故障</span><span>B. 若干进程同时处于阻塞状态</span><span>C. 若干进程等待被其他进程占用的资源而无限期等待</span><span>D. 请求的资源数大于系统提供的资源数</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C</div><dl><dt>这题核心知识点</dt><dd>死锁本质=互相等待对方持有的资源→无限期阻塞。B不准确（可能各自独立阻塞）。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q8 · 简答题</span><span class="q-source">题源：探究性作业3</span></div><div class="q-text">简述信号量在进程互斥和同步中的运用机制。</div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">参考答案：</div><dl><dt>这题答题核心点</dt><dd>互斥用mutex(初值1)，同步用私有信号量(初值0)。</dd><dt>必须出现</dt><dd>①P(mutex)...临界区...V(mutex)；②进程A:V(S)→进程B:P(S)；③P/V必须成对出现。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 4 ===== -->
+<div class="chapter" id="ch4">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第4章 存储器管理</h3><span class="badge badge-p0">P0</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>4.1 存储层次 & 地址</h4><p>寄存器→Cache→主存→辅存。逻辑地址（程序中使用）vs 物理地址（内存中实际）。</p></div>
+    <div class="knowledge"><h4>4.2 装入方式</h4><p><strong>绝对装入</strong>：编译时固定。<strong>静态重定位</strong>：装入时一次性转换。<strong>动态重定位</strong>：执行时通过重定位寄存器转换，支持程序浮动。</p><div class="trap">动态重定位在程序执行过程中完成，不是装入时！支持浮动的机制=动态重定位。</div></div>
+    <div class="knowledge"><h4>4.3 分区分配算法</h4><p>FF（首次适应）：按地址递增；BF（最佳适应）：按大小递增→挑最小的→产生小碎片；WF（最坏适应）：按大小递减→挑最大的。</p></div>
+    <div class="knowledge"><h4>4.4 分页存储管理 ⭐⭐</h4><p>内存→页框，进程→页面，大小相等。通过页表映射。地址变换：物理地址=页框号×页面大小+页内偏移。快表(TLB)缓存最近使用的页表项。两级页表解决大页表连续存储问题。</p><div class="trap">4GB内存4KB页面→2^20个块→块号需20bit→3字节。页表项中块号字节数取决于内存块总数。</div></div>
+    <div class="knowledge"><h4>4.5 分页vs分段</h4><p>页：物理单位、大小固定、对用户透明、一维地址。段：逻辑单位、大小可变、用户可见、二维地址(段号+段内)。</p></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q9 · 单选题</span><span class="q-source">题源：第4章测试题</span></div><div class="q-text">动态重定位是在( )完成的。</div><div class="q-options"><span>A. 程序编译时</span><span>B. 程序装入时</span><span>C. 程序执行过程中</span><span>D. 程序链接时</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：C（程序执行过程中）</div><dl><dt>这题核心知识点</dt><dd>动态=执行时逐条转换；静态=装入时一次性转换。三个时间点：编译→装入→执行，必须分清。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q10 · 单选题</span><span class="q-source">题源：第4章测试题</span></div><div class="q-text">空闲区长度按递减顺序排列适合于( )算法。</div><div class="q-options"><span>A. 最佳适应</span><span>B. 最坏适应</span><span>C. 首次适应</span><span>D. 循环首次适应</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：B（最坏适应）</div><dl><dt>这题核心知识点</dt><dd>BF递增（挑小的）；WF递减（挑大的）。口诀：最佳挑小的，最坏挑大的。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 5 ===== -->
+<div class="chapter" id="ch5">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第5章 虚拟存储器</h3><span class="badge badge-p1">P1</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>5.1 概念</h4><p><strong>虚拟存储器</strong>：具有请求调入和置换功能，从逻辑上扩充内存容量。实现基础：局部性原理（时间+空间）。</p></div>
+    <div class="knowledge"><h4>5.2 常规局限</h4><p>一次性（必须全部装入）和驻留性（全程驻留）限制了大程序运行和多程序并发。</p></div>
+    <div class="knowledge"><h4>5.3 页面置换算法 ⭐</h4><p><strong>OPT</strong>：淘汰最远将来使用的页，理论最优。<strong>FIFO</strong>：最早进入的先淘汰，有Belady异常。<strong>LRU</strong>：淘汰最久未使用的，需寄存器或栈硬件支持。<strong>Clock(NRU)</strong>：LRU的近似，用访问位循环扫描。</p><div class="trap">Belady异常只在FIFO中发生！LRU和OPT无此异常。实现LRU需要寄存器或栈。</div></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q11 · 简答题</span><span class="q-source">题源：第5章题库PPT</span></div><div class="q-text">实现LRU算法所需的硬件支持是什么？</div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：寄存器或栈。</div><dl><dt>这题答题核心点</dt><dd>寄存器法：每页移位寄存器记录访问时间。栈法：栈维护页面访问顺序。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q12 · 单选题</span><span class="q-source">题源：AI补充</span></div><div class="q-text">虚拟存储器的最大容量由( )决定。</div><div class="q-options"><span>A. 内存和外存之和</span><span>B. 地址结构</span><span>C. 页面大小</span><span>D. 页表长度</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：B（地址结构）</div><dl><dt>这题核心知识点</dt><dd>虚拟空间大小取决于CPU地址线位数，与物理容量无关。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 6 ===== -->
+<div class="chapter" id="ch6">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第6章 输入输出系统</h3><span class="badge badge-p2">P2</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>6.1 I/O设备分类</h4><p>按使用特性：存储设备、I/O设备。按速率：低速（键盘）、中速（打印机）、高速（磁盘）。</p></div>
+    <div class="knowledge"><h4>6.2 I/O控制方式</h4><p>程序直接控制（轮询）→中断驱动→DMA（设备和内存直接传输）→通道（专用I/O处理器）。自左向右CPU干预递减。</p></div>
+    <div class="knowledge"><h4>6.3 缓冲 & SPOOLing</h4><p>缓冲目的：缓和速度不匹配、减少中断频率、提高并行性。SPOOLing：用磁盘模拟独占设备→共享设备（输入井/输出井）。</p></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q13 · 简答题</span><span class="q-source">题源：第6章题库PPT</span></div><div class="q-text">为什么要在设备管理中引入缓冲技术？</div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">参考答案：</div><dl><dt>必须出现</dt><dd>①缓和CPU与I/O速度不匹配；②减少中断频率；③提高并行性。三个目的缺一不可。</dd></dl></details></div>
+      <div class="question"><div class="q-header"><span class="q-num">Q14 · 简答题</span><span class="q-source">题源：第6章题库PPT</span></div><div class="q-text">SPOOLing系统的基本工作原理是什么？</div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">参考答案：</div><dl><dt>必须出现</dt><dd>输入进程→输入井（磁盘）；用户进程从输入井读→输出井写；输出进程→输出设备。核心：以空间换时间。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 7 ===== -->
+<div class="chapter" id="ch7">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第7章 文件管理</h3><span class="badge badge-p2">P2</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>7.1 基本概念</h4><p>数据层次：数据项→记录→文件。文件系统：OS负责管理和存取文件的软件机构。核心功能：<strong>按名存取</strong>。</p></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q15 · 单选</span><span class="q-source">题源：AI补充</span></div><div class="q-text">文件系统的主要目的是( )。</div><div class="q-options"><span>A. 实现对文件的按名存取</span><span>B. 实现虚拟存储</span><span>C. 提高外存读写速度</span><span>D. 存储系统文档</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：A</div><dl><dt>这题核心知识点</dt><dd>文件系统最核心功能=用户通过文件名存取，无需关心物理位置。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chapter 8 ===== -->
+<div class="chapter" id="ch8">
+  <div class="chapter-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <h3>第8章 磁盘存储器的管理</h3><span class="badge badge-p2">P2</span>
+  </div>
+  <div class="chapter-body">
+    <div class="knowledge"><h4>8.1 外存组织方式</h4><p><strong>连续组织</strong>：顺序访问快但需连续空间、外存碎片。<strong>链接组织</strong>：无外存碎片但随机访问慢。<strong>索引组织</strong>：支持随机访问但索引表占额外空间。</p></div>
+    <div class="questions-section"><h4>📝 练习题</h4>
+      <div class="question"><div class="q-header"><span class="q-num">Q16 · 单选</span><span class="q-source">题源：AI补充</span></div><div class="q-text">连续组织方式的主要缺点是( )。</div><div class="q-options"><span>A. 访问速度慢</span><span>B. 要求为文件分配连续的存储空间</span><span>C. 不支持顺序访问</span><span>D. 磁盘利用率低</span></div><details class="q-answer"><summary>查看答案与解析</summary><div class="correct">答案：B</div><dl><dt>这题核心知识点</dt><dd>连续分配致命缺陷=需连续空间→外存碎片→文件不能动态增长。</dd></dl></details></div>
+    </div>
+  </div>
+</div>
+
+<!-- Review Route -->
+<div class="review-route" id="route">
+  <h2>🗺️ 推荐复习路线</h2>
+  <ol>
+    <li><strong>第2章</strong>（4h）—— 进程概念、状态转换、信号量、经典同步问题。考试权重最高。</li>
+    <li><strong>第3章</strong>（3h）—— 调度算法 + 死锁（必要条件、银行家算法）。</li>
+    <li><strong>第4章</strong>（3h）—— 分页/分段地址变换。重点计算题。</li>
+    <li><strong>第5章</strong>（2h）—— 虚拟存储器 + 页面置换算法。</li>
+    <li><strong>第1章</strong>（1.5h）—— 基础概念。</li>
+    <li><strong>第6章</strong>（1.5h）—— I/O控制方式、SPOOLing、缓冲。</li>
+    <li><strong>第7+8章</strong>（1.5h）—— 文件系统 + 磁盘组织。</li>
+  </ol>
+  <p style="margin-top:12px;font-size:0.85rem;color:var(--muted)">总计约16.5h。建议分3天：Day1 Ch2+3(7h)、Day2 Ch4+5(5h)、Day3 Ch1+6+7+8(4.5h)。</p>
+</div>
+
+<!-- Source Index -->
+<div class="source-index" id="sources">
+  <h2>📚 来源索引</h2>
+  <div class="src-group"><h4>主要课件 MD 文件</h4><p>Ch1: 1 - 第一章 操作系统概述, 第一章操作系统原理题库, 第1章题库ppt等 | Ch2: 2 - 第二章 处理机管理, 2 第二章 进程的描述与控制, 第2章题库ppt, 同步/死锁PDF共16份 | Ch3: 3 - 第三章 处理机调度与死锁, 第3章题库ppt, 存储管理PDF共9份 | Ch4: 4 - 第四章 存储器管理x2, 第4章题库PPT | Ch5: 5 第五章 虚拟存储器, 第5章题库ppt | Ch6: 6 第六章 输入输出系统x2, 第6章题库PPT | Ch7: 7 第七章 文件管理, 第7章题库ppt | Ch8: 8 第八章 磁盘存储器管理, 第8章题库PPT</p></div>
+  <div class="src-group"><h4>作业 JSON 文件</h4><p>探究性作业1~3（已完成/待批阅）、第1章引论测试题（已完成+待批阅）、第2章测试题（待批阅）、第3章测试题（未交）、第4章存储管理测试题（未交）</p></div>
+</div>
+
+</div>
+</body>
+</html>
