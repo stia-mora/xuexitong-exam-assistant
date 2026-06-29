@@ -316,11 +316,6 @@ def output_exists(course_dir: Path, relative: str) -> str:
     return f"- `{relative}` ({path_size(path)})" if path.exists() else f"- `{relative}` (missing)"
 
 
-def optional_output_exists(course_dir: Path, relative: str, note: str = "optional, not generated") -> str:
-    path = course_dir / relative
-    return f"- `{relative}` ({path_size(path)})" if path.exists() else f"- `{relative}` ({note})"
-
-
 def build_report(course_dir: Path, max_items: int, max_questions: int) -> str:
     meta = read_json(course_dir / "course_meta.json", {})
     counts = db_counts(course_dir)
@@ -352,15 +347,16 @@ def build_report(course_dir: Path, max_items: int, max_questions: int) -> str:
     lines.extend(["", f"## {OUTPUTS}"])
     lines.extend([
         output_exists(course_dir, "generated/codex_context.md"),
+        output_exists(course_dir, "generated/question_candidates.json"),
+        output_exists(course_dir, "generated/teacher_knowledge_seeds.json"),
+        output_exists(course_dir, "generated/knowledge_bank.json"),
+        output_exists(course_dir, "generated/question_audit.json"),
         output_exists(course_dir, "generated/question_bank.json"),
         output_exists(course_dir, "generated/mock_exam.json"),
-        output_exists(course_dir, "generated/teacher_mock_candidates.json"),
         output_exists(course_dir, "output/final_review_seed.md"),
         output_exists(course_dir, "output/practice.html"),
         output_exists(course_dir, "output/questions.html"),
         output_exists(course_dir, "output/mock_exam.html"),
-        optional_output_exists(course_dir, "output/teacher_mock_analysis.html"),
-        output_exists(course_dir, "output/practice.generated.html"),
         output_exists(course_dir, "course.db"),
     ])
     lines.extend(["", "## NotebookLM Optional Enrichment"])

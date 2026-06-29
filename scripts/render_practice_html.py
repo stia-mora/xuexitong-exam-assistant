@@ -1,4 +1,4 @@
-"""Render a local static fallback practice page from course.db."""
+"""Render a legacy debug-only practice page from course.db."""
 
 from __future__ import annotations
 
@@ -396,9 +396,9 @@ main { width: min(1180px, 100%); padding: 28px 32px 70px; }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Render a script-generated fallback HTML page from course.db. Codex should author the final practice.html after reviewing course Markdown.")
+    parser = argparse.ArgumentParser(description="Render a legacy debug-only HTML page from course.db. Final pages must come from audited question_bank.json via generate_exam_pages.py.")
     parser.add_argument("--course", required=True, help="Course directory, for example data/courses/<course_slug>.")
-    parser.add_argument("--output", default="", help="Optional output HTML path. Pipeline uses <course>/output/practice.generated.html as the fallback page.")
+    parser.add_argument("--output", default="", help="Optional output HTML path. Prefer <course>/output/practice.generated.html for legacy debugging.")
     args = parser.parse_args()
 
     course_dir = Path(args.course).resolve()
@@ -406,7 +406,7 @@ def main() -> int:
     if not db_path.exists():
         raise SystemExit(f"course.db does not exist. Run build_course_db.py first: {db_path}")
     meta, counts, concepts, items = fetch_data(db_path, course_dir)
-    output = Path(args.output).resolve() if args.output else course_dir / "output" / "practice.html"
+    output = Path(args.output).resolve() if args.output else course_dir / "output" / "practice.generated.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(build_html(course_dir, meta, counts, concepts, items), encoding="utf-8", newline="\n")
     print(f"html={output} concepts={len(concepts)} practice_items={len(items)}")

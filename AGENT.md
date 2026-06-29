@@ -1,52 +1,59 @@
 # 学习通期末复习长期规则
 
-本项目长期用于学习通课程数据采集 + 期末复习。以下规则是 `xuexitong-exam-assistant` skill 中应长期生效的核心规则，即使未显式加载 skill 也应默认遵守。
+本项目长期用于学习通/超星课程采集与期末复习包生成。默认遵守以下规则。
 
 ## 完整流程
+
+```text
+采集课件/作业 → MinerU 转 Markdown → 建 SQLite 数据库 → 准备 codex_context
+→ 准备 question_candidates + teacher_knowledge_seeds
+→ 智能体 LLM 先提炼 knowledge_bank
+→ 基于 knowledge_bank 逐题审核并写 question_audit
+→ 生成绑定 knowledge_ids 的最终 question_bank
+→ 校验知识库 hash + 不少于 150 道审核通过题
+→ 用 templates/ 渲染先学后练 practice/questions/mock_exam
 ```
-采集课件/作业 → MinerU转Markdown → 建SQLite数据库 → 清洗Markdown
-→ 提知识点 → LLM建题库（原始JSON不可靠则LLM重建）→ 模拟卷生成
-→ 得分导向解析 → 生成多页面复习HTML
-```
 
-## ⚠️ LLM 题库兜底规则
+## 知识库先行强约束
 
-从 `assignments_md/*.questions.json` 提取的原始题库数据几乎必然存在：答案为空、题干含爬取垃圾、选项混入"我的答案"标记、解析缺失。**有效题目占比通常 < 50% 时必须放弃 JSON 数据，直接用 LLM 知识重建题库。** 宁可要 150 道每题都有答案+解析的精品题，不要 800 道缺胳膊少腿的垃圾题。
+- `generated/knowledge_bank.json` 必须先于题库生成；`teacher_knowledge_seeds.json` 只是原始种子。
+- 可选 `input/teacher_focus.md` 是最高优先级知识来源。
+- 每个知识点必须有学习目标、核心要点、公式/例子、易错点、考试提示、来源引用、`reviewed_by_llm: true`、`quality_status: approved`。
+- 只有标题、没有实质说明的知识种子不得直接进入复习页。
+- `question_bank.summary.knowledge_bank_hash` 必须匹配当前知识库。
 
-LLM 重建题库时：基于已读课件材料的知识点和章节结构覆盖所有章节，重点章题量>次要章，目标 150~200 题覆盖选择/判断/填空/简答，每题必须含干净题干+选项+明确答案+得分导向解析。题源标记：老师PPT（课件知识点）或 AI补充（合理推断）。
+## 逐题 LLM 审核强约束
 
-## 题源优先级
-```
-历年真题 > 老师PPT > 平时作业/阅读作业 > 速成课题目 > AI补充题
-```
-- 速成课优先级低但知识点梳理价值高
+- `generated/question_candidates.json` 中每一道候选题都必须由智能体 LLM 逐题审核。
+- 不得按章节、题源或题型批量通过。
+- 被丢弃题也必须在 `generated/question_audit.json` 中记录原因。
+- LLM 新生成题必须先进入 audit，再复审通过，才能进入最终题库。
+- `generated/question_audit.json` 中每条 approved audit 必须绑定 `knowledge_ids`。
+- `generated/question_bank.json` 每题必须有 `knowledge_ids`、`audit_id`、答案、解析、`reviewed_by_llm: true`、`quality_status: approved`。
 
-## 材料处理规则
-1. 采集后的课件/作业用 MinerU 转 Markdown（已有产物直接用）
-2. **先清洗，再提知识点，最后出题** — 顺序不可颠倒
-3. 清洗：去乱码、去重复、去废话，保留核心定义、性质、结论、方法、易错点
-4. 目标：清晰、可背、可考，不是完整存档
+## 题目处理优先级
 
-## 出题规则
-- 按考试题型出题，每个知识点 1~6 题
-- 题型匹配考法：识记→选择/判断，定义比较→简答，推理证明→主观题
+1. `reuse_full`：学习通/课件原题题干、答案、解析都合格，标准化复用。
+2. `add_analysis`：题干和答案可信，解析缺失或低质，由 LLM 补得分导向解析。
+3. `infer_answer`：题干/选项可信但答案缺失，LLM 基于课件推断答案与解析，标注置信度。
+4. `discard_noisy`：课件原文、平台噪声、图片链接、作答记录、无法判断答案的题丢弃。
+5. `teacher_knowledge_generated`：审核通过题不足 150 时，基于已审核 `knowledge_bank.json` 补题。
 
-## 解析规则（得分导向）
-- 客观题：`这题核心知识点` + 关键定义/性质 + 易混点
-- 主观题：`这题答题核心点` + `必须出现` + `常见失分点` + 标准作答框架
-- 每题补：先写什么、哪些词必须出现、哪些步骤抢分
+## 题量要求
 
-## 最终产出（多页面静态复习包）
+- 最终审核通过题数硬下限：150。
+- 目标题量：约 180。
+- 通常不超过 220；超过时按老师 PPT/作业/推断题/补充题优先级筛选。
 
-| 页面 | 定位 | 内容 |
-|---|---|---|
-| `practice.html` | 教学复习（系统学习） | 采集摘要+优先级图谱+8章知识点+易错陷阱+嵌入式练习题+复习路线+来源索引。顶部双入口卡链接题库和模拟卷 |
-| `questions.html` | 题库（刷题查漏） | 按章节组织全部题目，每题含答案+解析，`<details>` 折叠 |
-| `mock_exam.html` | 模拟卷（考前检验） | 30选+15判+10填+5简答，有老师卷则按其结构生成 |
+## 解析规则
 
-答案统一用原生 `<details><summary>`，不得用 onclick/JS。
+- 客观题：写清“这题核心知识点”、正确答案依据、易混点。
+- 主观题：写清“答题核心点”、“必须出现”的关键词/步骤、“常见失分点”。
+- 解析必须服务考试得分，不能使用 `资料未提供完整解析`、`参考答案待补充` 等弱文本。
 
-## 得分导向提示
-- 判断题：先看边界条件和反例
-- 简答题：先写定义→再写性质→再写结论
-- 不会完整作答：先写核心定义和关键性质先抢步骤分
+## 输出规则
+
+- 最终 HTML 只能使用 `templates/practice.html`、`templates/questions.html`、`templates/mock_exam.html` 的结构和风格。
+- `practice.html` 必须每章先展示知识点学习卡片，再展示精选练习。
+- 答案统一使用原生 `<details><summary>` 折叠。
+- `practice.generated.html` 是遗留调试页，不得作为最终入口或质量基准。
