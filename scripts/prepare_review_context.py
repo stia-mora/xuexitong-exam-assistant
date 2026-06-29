@@ -227,7 +227,7 @@ def build_context(course_dir: Path, max_materials: int = 12) -> tuple[str, str]:
     review_lines.extend([
         "",
         "## 三、Codex 精修提示",
-        "请基于 `generated/codex_context.md` 重写本文件：按章节合并重复知识点，补齐每章的定义、常考问法、易错点，并生成按难度分层的期末模拟题。最终 HTML 也应优先按章节组织，再在章节内展开知识点。",
+        "请先基于 `generated/codex_context.md`、`generated/teacher_knowledge_seeds.json`、`materials_md/` 和可选 `input/teacher_focus.md` 提炼 `generated/knowledge_bank.json`；再逐题审核 `generated/question_candidates.json`：原题优先复用，缺解析补解析，缺答案可推断但需标注置信度；不足 150 道审核通过题时，只能按已审核知识点补题。每条 approved audit 和最终题都必须绑定 `knowledge_ids`，最终 HTML 只能由已审核 `knowledge_bank.json` 与 `question_bank.json` 渲染。",
     ])
     return "\n".join(context_lines).strip() + "\n", "\n".join(review_lines).strip() + "\n"
 

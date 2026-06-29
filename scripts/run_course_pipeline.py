@@ -59,7 +59,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Collect a course, convert materials to Markdown, build course.db, "
-            "render fallback HTML, and build the multi-page exam review package."
+            "prepare LLM-audit candidates, and render final pages only after reviewed knowledge_bank/question_bank validation."
         )
     )
     parser.add_argument(
@@ -92,13 +92,15 @@ def main() -> int:
     parser.add_argument("--office-timeout", type=int, default=240)
     parser.add_argument("--material-limit", type=int, default=0)
     parser.add_argument("--assignment-limit", type=int, default=0)
-    parser.add_argument("--teacher-mock", default="", help="Optional teacher mock Markdown path, stem, or title to force selection.")
-    parser.add_argument("--questions-per-chapter", type=int, default=80, help="Maximum question-bank items kept per inferred chapter.")
-    parser.add_argument("--ai-fill-min-per-chapter", type=int, default=25, help="Minimum items per chapter after AI/Codex-style fallback fill.")
+    parser.add_argument("--teacher-mock", default="", help="Deprecated for final rendering; kept for CLI compatibility.")
+    parser.add_argument("--questions-per-chapter", type=int, default=80, help="Deprecated; final rendering uses audited question_bank.json.")
+    parser.add_argument("--ai-fill-min-per-chapter", type=int, default=25, help="Deprecated; LLM supplementing happens during question audit.")
     parser.add_argument("--skip-collect", action="store_true")
     parser.add_argument("--skip-convert", action="store_true")
-    parser.add_argument("--skip-render", action="store_true")
-    parser.add_argument("--skip-exam-pages", action="store_true", help="Skip question_bank/mock_exam/multi-page HTML generation.")
+    parser.add_argument("--skip-render", action="store_true", help="Deprecated. Legacy fallback rendering is disabled unless --render-legacy-fallback is set.")
+    parser.add_argument("--render-legacy-fallback", action="store_true", help="Render output/practice.generated.html for debugging only. It is not a final review page.")
+    parser.add_argument("--skip-exam-pages", action="store_true", help="Skip audited question_bank/mock_exam/multi-page HTML rendering.")
+    parser.add_argument("--min-approved-questions", type=int, default=150, help="Minimum LLM-audited approved questions required before final HTML rendering.")
     parser.add_argument("--notebooklm", action="store_true", help="Opt in to uploading converted Markdown bundles to NotebookLM and importing generated study artifacts.")
     parser.add_argument("--notebooklm-profile", default="", help="NotebookLM profile name. Empty uses the active/default profile.")
     parser.add_argument("--notebooklm-strict", action="store_true", help="Fail the pipeline if the optional NotebookLM sync fails.")
@@ -189,9 +191,11 @@ def main() -> int:
         run_step("prepare review context after NotebookLM", [sys.executable, str(SCRIPT_DIR / "prepare_review_context.py"), "--course", str(course_dir)], cwd=workspace_root, env=env)
 
     generated_html = course_dir / "output" / "practice.generated.html"
-    if not args.skip_render:
+    run_step("prepare question candidates for LLM audit", [sys.executable, str(SCRIPT_DIR / "prepare_question_candidates.py"), "--course", str(course_dir)], cwd=workspace_root, env=env)
+
+    if args.render_legacy_fallback and not args.skip_render:
         run_step(
-            "render fallback practice html",
+            "render legacy fallback practice html",
             [
                 sys.executable,
                 str(SCRIPT_DIR / "render_practice_html.py"),
@@ -204,33 +208,52 @@ def main() -> int:
             env=env,
         )
     if not args.skip_exam_pages:
-        exam_cmd = [
-            sys.executable,
-            str(SCRIPT_DIR / "generate_exam_pages.py"),
-            "--course",
-            str(course_dir),
-            "--questions-per-chapter",
-            str(args.questions_per_chapter),
-            "--ai-fill-min-per-chapter",
-            str(args.ai_fill_min_per_chapter),
-        ]
-        if args.teacher_mock:
-            exam_cmd.extend(["--teacher-mock", args.teacher_mock])
-        run_step("generate multi-page exam review", exam_cmd, cwd=workspace_root, env=env)
+        knowledge_path = course_dir / "generated" / "knowledge_bank.json"
+        audit_path = course_dir / "generated" / "question_audit.json"
+        bank_path = course_dir / "generated" / "question_bank.json"
+        if knowledge_path.exists() and audit_path.exists() and bank_path.exists():
+            exam_cmd = [
+                sys.executable,
+                str(SCRIPT_DIR / "generate_exam_pages.py"),
+                "--course",
+                str(course_dir),
+                "--min-approved-questions",
+                str(args.min_approved_questions),
+            ]
+            if args.teacher_mock:
+                exam_cmd.extend(["--teacher-mock", args.teacher_mock])
+            run_step("render audited multi-page exam review", exam_cmd, cwd=workspace_root, env=env)
+        else:
+            missing = [
+                str(path.relative_to(course_dir))
+                for path in (knowledge_path, audit_path, bank_path)
+                if not path.exists()
+            ]
+            print(
+                "\nWAITING FOR LLM REVIEW: generated/question_candidates.json and generated/teacher_knowledge_seeds.json are ready. "
+                f"Missing: {', '.join(missing)}. "
+                "First extract generated/knowledge_bank.json from course materials/optional input/teacher_focus.md, "
+                "then review every candidate, write generated/question_audit.json and generated/question_bank.json, "
+                "then rerun generate_exam_pages.py.",
+                flush=True,
+            )
     run_step("write crawl report", [sys.executable, str(SCRIPT_DIR / "report_course_collection.py"), "--course", str(course_dir)], cwd=workspace_root, env=env)
 
     print(f"\nDONE course={course_dir}", flush=True)
     print(f"Workspace root: {workspace_root}", flush=True)
-    print(f"Fallback HTML: {generated_html}", flush=True)
-    print(f"Final entry HTML: {course_dir / 'output' / 'practice.html'}", flush=True)
-    print(f"Question page: {course_dir / 'output' / 'questions.html'}", flush=True)
-    print(f"Mock exam page: {course_dir / 'output' / 'mock_exam.html'}", flush=True)
-    print(f"Teacher mock analysis page: {course_dir / 'output' / 'teacher_mock_analysis.html'}", flush=True)
+    print(f"Question candidates: {course_dir / 'generated' / 'question_candidates.json'}", flush=True)
+    print(f"Teacher knowledge seeds: {course_dir / 'generated' / 'teacher_knowledge_seeds.json'}", flush=True)
+    print(f"Reviewed knowledge bank: {course_dir / 'generated' / 'knowledge_bank.json'}", flush=True)
+    print(f"Required audit file: {course_dir / 'generated' / 'question_audit.json'}", flush=True)
+    print(f"Audited question bank: {course_dir / 'generated' / 'question_bank.json'}", flush=True)
+    print(f"Final entry HTML after audit: {course_dir / 'output' / 'practice.html'}", flush=True)
+    print(f"Question page after audit: {course_dir / 'output' / 'questions.html'}", flush=True)
+    print(f"Mock exam page after audit: {course_dir / 'output' / 'mock_exam.html'}", flush=True)
+    if args.render_legacy_fallback:
+        print(f"Legacy fallback HTML: {generated_html}", flush=True)
     print(f"Review seed: {course_dir / 'output' / 'final_review_seed.md'}", flush=True)
     print(f"Codex context: {course_dir / 'generated' / 'codex_context.md'}", flush=True)
-    print(f"Question bank: {course_dir / 'generated' / 'question_bank.json'}", flush=True)
     print(f"Mock exam JSON: {course_dir / 'generated' / 'mock_exam.json'}", flush=True)
-    print(f"Teacher mock candidates: {course_dir / 'generated' / 'teacher_mock_candidates.json'}", flush=True)
     if args.notebooklm:
         print(f"NotebookLM manifest: {course_dir / 'generated' / 'notebooklm' / 'manifest.json'}", flush=True)
     print(f"Crawl report: {course_dir / 'output' / 'crawl_report.md'}", flush=True)

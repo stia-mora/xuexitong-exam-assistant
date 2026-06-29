@@ -443,11 +443,11 @@ def insert_practice_items(conn: sqlite3.Connection, course_dir: Path, title_to_i
                         "concept_title": title,
                         "question": f"Explain the core concept, common exam angle, and typical mistakes for: {title}.",
                         "options": [],
-                        "answer": "Refer to the collected course materials and complete the answer.",
-                        "explanation": "This is a fallback review prompt generated from source headings. Ask Codex to rewrite it using the collected materials.",
+                        "answer": "Candidate only; final answer must be written during LLM per-question audit.",
+                        "explanation": "This is a candidate review prompt generated from source headings. It must be audited before entering the final question bank.",
                         "difficulty": "medium",
                         "source_refs": [],
-                        "metadata": {"generated_by": "concept_fallback"},
+                        "metadata": {"generated_by": "concept_candidate"},
                     }
                 )
     for index, item in enumerate(items, start=1):
