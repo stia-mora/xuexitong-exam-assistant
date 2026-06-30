@@ -52,7 +52,7 @@ class CourseManifest:
     def load(self) -> None:
         if not self.path.exists():
             return
-        data = json.loads(self.path.read_text(encoding="utf-8"))
+        data = json.loads(self.path.read_text(encoding="utf-8-sig"))
         for raw in data.get("items", []):
             item = ManifestItem(**raw)
             self.items[item.id] = item
@@ -104,6 +104,18 @@ class CourseManifest:
     def mark_failed(self, item_id: str, error: str) -> None:
         item = self.items[item_id]
         item.status = "failed"
+        item.error = str(error)[:2000]
+        item.updated_at = utc_now()
+
+    def mark_unavailable(self, item_id: str, reason: str) -> None:
+        item = self.items[item_id]
+        item.status = "unavailable"
+        item.error = str(reason)[:2000]
+        item.updated_at = utc_now()
+
+    def mark_failed_nonfatal(self, item_id: str, error: str) -> None:
+        item = self.items[item_id]
+        item.status = "failed_nonfatal"
         item.error = str(error)[:2000]
         item.updated_at = utc_now()
 

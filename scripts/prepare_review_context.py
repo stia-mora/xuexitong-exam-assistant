@@ -87,9 +87,21 @@ def db_counts(db_path: Path) -> dict[str, int]:
     return counts
 
 
+def iter_assessment_question_files(course_dir: Path) -> list[tuple[str, str, Path]]:
+    rows: list[tuple[str, str, Path]] = []
+    for source_label, source_kind, folder_name in [
+        ("考试", "xxt_exam", "exams_md"),
+        ("作业", "xxt_assignment", "assignments_md"),
+    ]:
+        folder = course_dir / folder_name
+        for path in sorted(folder.glob("*.questions.json"), key=lambda p: p.as_posix().casefold()):
+            rows.append((source_label, source_kind, path))
+    return rows
+
+
 def load_questions(course_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for path in sorted((course_dir / "assignments_md").glob("*.questions.json")):
+    for source_label, source_kind, path in iter_assessment_question_files(course_dir):
         payload = read_json(path, {})
         title = payload.get("title") or path.stem
         source_url = payload.get("source_url") or ""
@@ -98,7 +110,11 @@ def load_questions(course_dir: Path) -> list[dict[str, Any]]:
             if not question:
                 continue
             rows.append({
-                "assignment": title,
+                "assessment": title,
+                "source_label": source_label,
+                "source_kind": source_kind,
+                "type": item.get("type") or "",
+                "points": item.get("points") or "",
                 "question": question,
                 "options": item.get("options") or [],
                 "answer": item.get("answer") or "",
@@ -110,6 +126,17 @@ def load_questions(course_dir: Path) -> list[dict[str, Any]]:
 
 def render_question(item: dict[str, Any], index: int) -> list[str]:
     lines = [f"{index}. {item['question']}"]
+    meta_parts = [
+        part
+        for part in [
+            item.get("source_label"),
+            item.get("type"),
+            f"{item.get('points')} 分" if item.get("points") else "",
+        ]
+        if part
+    ]
+    if meta_parts:
+        lines.append(f"   - 类型：{' / '.join(meta_parts)}")
     for option in item.get("options", []):
         if isinstance(option, dict):
             label = option.get("label") or ""
@@ -121,7 +148,9 @@ def render_question(item: dict[str, Any], index: int) -> list[str]:
         lines.append(f"   - 答案：{item['answer']}")
     if item.get("explanation"):
         lines.append(f"   - 解析：{item['explanation']}")
-    lines.append(f"   - 来源：{item.get('assignment', '')}")
+    lines.append(f"   - 来源：{item.get('source_label', '题目')} / {item.get('assessment', '')}")
+    if item.get("source_url"):
+        lines.append(f"   - URL：{item.get('source_url')}")
     return lines
 
 
@@ -182,7 +211,7 @@ def build_context(course_dir: Path, max_materials: int = 12) -> tuple[str, str]:
     questions = load_questions(course_dir)
     grouped_questions: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in questions:
-        grouped_questions[item["assignment"]].append(item)
+        grouped_questions[f"{item.get('source_label', '题目')}：{item['assessment']}"].append(item)
 
     context_lines = [
         f"# {title} Codex 复习上下文包",
@@ -200,7 +229,7 @@ def build_context(course_dir: Path, max_materials: int = 12) -> tuple[str, str]:
         "## 材料压缩摘要",
         *(material_sections or ["暂无材料 Markdown。"]),
         "",
-        "## 作业题目",
+        "## 考试与作业题目",
     ]
     q_index = 1
     for assignment, rows in grouped_questions.items():
@@ -221,7 +250,7 @@ def build_context(course_dir: Path, max_materials: int = 12) -> tuple[str, str]:
                 review_lines.append(f"{index}. {heading}")
     else:
         review_lines.append("暂无可用课件标题，请先运行资料转换。")
-    review_lines.extend(["", "## 二、作业原题整理"])
+    review_lines.extend(["", "## 二、学习通考试/作业原题整理"])
     for index, item in enumerate(questions, start=1):
         review_lines.extend(render_question(item, index))
     review_lines.extend([

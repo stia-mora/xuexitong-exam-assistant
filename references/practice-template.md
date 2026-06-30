@@ -30,8 +30,10 @@
 
 - `.ch-h` — 章节头部，cursor:pointer，onclick 折叠/展开
 - `.knowledge` — 知识点学习卡片，必须在精选练习之前渲染
+- `.knowledge .priority-tag` — 显示 LLM 给出的 `review_priority`，取值只能是 P0/P1/P2
 - `.knowledge .trap` — 易错陷阱提示，红色文字+粉色背景，::before "⚠ 易错："
 - `.et` — 考试得分提示，黄色背景 border: #ffe082
 - `.p.p0` — P0 必会(红色 #dc3545)，.p.p1 (橙色 #fd7e14)，.p.p2 (蓝色 #0d6efd)
+- 章节导航必须 sticky/fixed 在页面上方，长页面滚动时仍能跳转章节
 - `.ec a` — 入口卡片，网格布局，hover 上浮+阴影
 - 答案使用原生 `<details class="qa"><summary>` — 不要 onclick

@@ -268,23 +268,37 @@ def load_question_payload(md_path: Path) -> dict[str, Any]:
     return {"questions": []}
 
 
+def iter_assessment_markdown(course_dir: Path) -> list[tuple[Path, str]]:
+    rows: list[tuple[Path, str]] = []
+    rows.extend((path, "xxt_assignment") for path in sorted((course_dir / "assignments_md").glob("*.md")))
+    rows.extend((path, "xxt_exam") for path in sorted((course_dir / "exams_md").glob("*.md")))
+    return rows
+
+
 def insert_assignments(conn: sqlite3.Connection, course_dir: Path) -> list[dict[str, Any]]:
     collected: list[dict[str, Any]] = []
-    for md_path in sorted((course_dir / "assignments_md").glob("*.md")):
+    for md_path, source_kind in iter_assessment_markdown(course_dir):
         markdown = read_text(md_path)
         payload = load_question_payload(md_path)
         title = payload.get("title") or first_heading(markdown, md_path.stem)
         source_url = payload.get("source_url") or ""
-        assignment_id = sha1_text(f"assignment\n{rel(md_path, course_dir)}")[:24]
+        assignment_id = sha1_text(f"{source_kind}\n{rel(md_path, course_dir)}")[:24]
         conn.execute(
             """
             INSERT OR REPLACE INTO assignments
             (id, title, markdown_path, source_url, metadata_json, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (assignment_id, title, rel(md_path, course_dir), source_url, json_dumps({"question_count": len(payload.get("questions", []))}), utc_now()),
+            (
+                assignment_id,
+                title,
+                rel(md_path, course_dir),
+                source_url,
+                json_dumps({"question_count": len(payload.get("questions", [])), "source_kind": source_kind}),
+                utc_now(),
+            ),
         )
-        insert_source(conn, course_dir, md_path, "assignment_markdown", title, source_url)
+        insert_source(conn, course_dir, md_path, "exam_markdown" if source_kind == "xxt_exam" else "assignment_markdown", title, source_url)
         for index, question in enumerate(payload.get("questions", []), start=1):
             q_text = question.get("question") or ""
             if not q_text.strip():
@@ -303,11 +317,19 @@ def insert_assignments(conn: sqlite3.Connection, course_dir: Path) -> list[dict[
                     json_dumps(question.get("options") or []),
                     question.get("answer") or "",
                     question.get("explanation") or "",
-                    json_dumps({"type": question.get("type") or "unknown"}),
+                    json_dumps({"type": question.get("type") or "unknown", "source_kind": source_kind}),
                     utc_now(),
                 ),
             )
-            collected.append({"assignment_id": assignment_id, "assignment_title": title, "question": question, "path": rel(md_path, course_dir)})
+            collected.append(
+                {
+                    "assignment_id": assignment_id,
+                    "assignment_title": title,
+                    "source_kind": source_kind,
+                    "question": question,
+                    "path": rel(md_path, course_dir),
+                }
+            )
     return collected
 
 

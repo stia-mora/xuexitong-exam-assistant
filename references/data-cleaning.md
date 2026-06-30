@@ -2,6 +2,16 @@
 
 `prepare_question_candidates.py` 只负责收集候选题，不负责判定最终可用。清洗的目标是给 LLM 逐题审核提供高信号输入，并标注风险。
 
+## 候选题来源优先级
+
+1. `exams_md/*.questions.json`：已开放考试/试卷详情页提取的真实题，`source_kind=xxt_exam`，优先进入 LLM audit。
+2. `assignments_md/*.questions.json`：作业和练习题，`source_kind=xxt_assignment`。
+3. `materials_md/` 与老师重点：只能作为材料候选或知识点补题依据。
+
+考试页采集失败不是清洗失败。采集器会在 manifest 中记录 `unavailable` 或 `failed_nonfatal`，并在 `output/crawl_report.md` 写明未开放、无权限、空页面或解析 0 题等原因。没有考试题时，后续仍按“作业候选 → 知识点补题 → 150 题下限”继续。
+
+当自动采集打不开详情页，但用户 Chrome 里已经能看到“考试详情/查看详情”页面时，可以保存当前 DOM 为 `raw/exams_html/*.browser.html`，再用 `scripts/extract_exams.py` 转成 `exams_md/*.questions.json`。这类浏览器兜底文件与自动采集结果同等处理，仍以 `source_kind=xxt_exam` 优先进入逐题 LLM 审核。
+
 ## 常见质量标记
 
 - `missing_answer`：候选题没有可靠答案。

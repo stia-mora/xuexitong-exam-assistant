@@ -21,12 +21,21 @@
 - `formula_examples`
 - `pitfalls`
 - `exam_tips`
+- `review_priority`: `P0 | P1 | P2`
 - `source_refs`
 - `source_kind`: `teacher_focus | course_material`
 - `reviewed_by_llm: true`
 - `quality_status: approved`
 
 `teacher_focus` 知识点应在同章中优先展示，并优先用于补题覆盖。
+
+`review_priority` 必须由 LLM 明确给出：
+
+- `P0`：必会、高频、老师强调、真实考试题反复出现或是后续题目的基础概念。
+- `P1`：重要但频率略低，通常用于简答、判断、设计题中的支撑步骤。
+- `P2`：补充覆盖或查漏补缺内容，仍需可学习、可出题，但复习顺序排在 P0/P1 后。
+
+不得只用数字 `priority` 代替 `review_priority`。数字排序可以保留给同一 P 级内部排序，但最终页面显示和渲染校验以 `P0/P1/P2` 为准。
 
 ## 质量规则
 

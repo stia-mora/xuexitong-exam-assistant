@@ -5,7 +5,7 @@
 ## 输入文件
 
 - `generated/codex_context.md`：课程材料压缩上下文，先读。
-- `generated/question_candidates.json`：学习通作业和课件中提取的候选题，每题都要审核。
+- `generated/question_candidates.json`：学习通考试、作业和课件中提取的候选题，每题都要审核。脚本按 `xxt_exam`、`xxt_assignment`、材料候选的顺序写入，考试题优先处理。
 - `generated/teacher_knowledge_seeds.json`：老师 PPT/资料中的原始知识种子，不可直接作为页面知识点。
 - `input/teacher_focus.md`：可选，老师或用户手动提供的复习重点，优先级最高。
 - `generated/knowledge_bank.json`：LLM 审核后的知识库，题目审核和补题必须基于它。
@@ -14,8 +14,8 @@
 ## 审核顺序
 
 1. 先读取 `teacher_knowledge_seeds.json`、`materials_md/` 和可选 `input/teacher_focus.md`，提炼 `knowledge_bank.json`。
-2. 每个知识点必须有学习目标、核心要点、公式/例子、易错点、考试提示、来源引用，并标记 `reviewed_by_llm: true`、`quality_status: approved`。
-3. 读取候选题总数、题型分布、质量 flags。
+2. 每个知识点必须有学习目标、核心要点、公式/例子、易错点、考试提示、来源引用和 `review_priority: P0|P1|P2`，并标记 `reviewed_by_llm: true`、`quality_status: approved`。
+3. 读取候选题总数、题型分布、质量 flags。若存在 `source_kind=xxt_exam` 的候选题，先审核考试题；考试题仍不得跳过逐题审计。
 4. 按候选题顺序逐题审核，不得批量通过；每条 approved audit 必须绑定 `knowledge_ids`。
 5. 每审核一批就保存 `question_audit.json`，避免上下文中断丢失。
 6. 根据审核通过记录生成 `question_bank.json`，每题必须显式包含 `knowledge_ids`。
@@ -60,6 +60,15 @@
 
 用于审核通过题不足 150 时。生成新题必须基于 `knowledge_bank.json` 中审核通过的知识点，不得离开课程范围。每题仍需完整答案和得分导向解析，并绑定对应 `knowledge_ids`。
 
+## 考试题后退规则
+
+- `exams_md/*.questions.json` 中的候选题为最高优先级真实题源。
+- 若自动采集无法进入试卷详情，但用户 Chrome 中已经打开可见的“考试详情/查看详情”页，可用 Chrome skill 保存当前 DOM HTML 到 `raw/exams_html/*.browser.html`，再运行 `scripts/extract_exams.py` 生成 `exams_md/*.questions.json`。
+- 考试页不可访问、老师未开放、无权限、空页面或解析 0 题时，不得臆造“考试原题”；继续使用作业候选和知识点补题。
+- `output/crawl_report.md` 会记录考试 manifest 状态。`unavailable` 与 `failed_nonfatal` 不是流水线失败，只是说明本轮没有可用考试题。
+- 只有显式运行采集器的 `--require-exams` 调试开关时，考试题为 0 才能使采集失败。
+- 考试候选进入最终题库时，按审核结果标注为 `xxt_exam_reused`、`xxt_exam_analysis_llm` 或 `xxt_exam_answer_inferred`。
+
 ## knowledge_bank.json 结构
 
 推荐结构：
@@ -77,6 +86,7 @@
       "formula_examples": ["例：'地球是圆的' 是命题；'x>5' 在未给论域和值时不是命题"],
       "pitfalls": ["疑问句、祈使句、含自由变量的开放语句通常不是命题"],
       "exam_tips": ["判断题先看是否陈述句，再看真值是否确定"],
+      "review_priority": "P0",
       "source_refs": ["materials_md/2_1_what is proposition.md"],
       "source_kind": "course_material",
       "reviewed_by_llm": true,
@@ -111,7 +121,7 @@
       "confidence": 0.94,
       "quality_notes": "原答案可信，补充得分导向解析。",
       "knowledge_ids": ["K001"],
-      "source_refs": ["assignments_md/example.questions.json"],
+      "source_refs": ["exams_md/example.questions.json"],
       "chapter": {"key": "ch1", "title": "第1章 ..."},
       "approved_for_bank": true,
       "reviewed_by_llm": true,
@@ -135,7 +145,7 @@
     {
       "id": "Q001",
       "audit_id": "audit-0001",
-      "source_kind": "xxt_analysis_llm",
+      "source_kind": "xxt_exam_analysis_llm",
       "type": "单选题",
       "stem": "题干",
       "options": [{"label": "A", "text": "..."}],
@@ -159,7 +169,7 @@
 渲染前确认：
 
 - `question_candidates.json` 中每个 candidate id 都能在 audit 的 `source_id` 找到。
-- `knowledge_bank.json` 中每个知识点都有学习目标、核心要点、公式/例子、易错点、考试提示、来源引用和 LLM 审核标记。
+- `knowledge_bank.json` 中每个知识点都有学习目标、核心要点、公式/例子、易错点、考试提示、来源引用、`review_priority: P0|P1|P2` 和 LLM 审核标记。
 - `question_bank.json` 中每题都有 audit_id 和 knowledge_ids，且对应 audit 为 approved。
 - `question_bank.summary.knowledge_bank_hash` 与当前知识库一致。
 - 审核通过题数不少于 150。

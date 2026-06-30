@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,9 @@ CONVERSION_FAILURES = U(r"\u8f6c\u6362\u5931\u8d25\u8bb0\u5f55")
 NO_CONVERSION_FAILURES = U(r"\u6682\u65e0\u8f6c\u6362\u5931\u8d25\u8bb0\u5f55\u3002")
 ASSIGNMENTS = U(r"\u4f5c\u4e1a\u4e0e\u9898\u76ee")
 NO_ASSIGNMENTS = U(r"\u6682\u65e0\u4f5c\u4e1a\u9898\u76ee\u3002")
+EXAMS = U(r"\u8003\u8bd5\u91c7\u96c6\u72b6\u6001")
+NO_EXAMS = U(r"\u672a\u53d1\u73b0\u53ef\u91c7\u96c6\u7684\u8003\u8bd5\u9898\uff0c\u6d41\u6c34\u7ebf\u5c06\u7ee7\u7eed\u4f7f\u7528\u4f5c\u4e1a\u5019\u9009\u548c\u8bfe\u4ef6\u77e5\u8bc6\u70b9\u8865\u9898\u3002")
+EXAM_FALLBACK_HINT = U(r"\u8003\u8bd5\u9898\u662f\u9ad8\u4f18\u5148\u7ea7\u6765\u6e90\uff0c\u4f46\u4e0d\u662f\u751f\u6210\u590d\u4e60\u5305\u7684\u786c\u4f9d\u8d56\uff1b\u8001\u5e08\u672a\u5f00\u653e\u3001\u65e0\u6743\u9650\u6216\u89e3\u6790 0 \u9898\u65f6\u4e0d\u4f1a\u963b\u65ad\u540e\u7eed\u6d41\u7a0b\u3002")
 OUTPUTS = U(r"\u5df2\u751f\u6210\u8f93\u51fa")
 CHAPTER_KNOWLEDGE = U(r"\u77e5\u8bc6\u70b9\u7ae0\u8282\u5212\u5206")
 NO_CHAPTER_KNOWLEDGE = U(r"\u6682\u672a\u751f\u6210\u77e5\u8bc6\u70b9\u7ae0\u8282\u4fe1\u606f\uff0c\u8bf7\u5148\u8fd0\u884c `build_course_db.py`\u3002")
@@ -45,6 +49,7 @@ NOT_EXPANDED_QUESTIONS = U(r"\u9898\u672a\u5728\u62a5\u544a\u4e2d\u5c55\u5f00\u3
 NOT_EXPANDED_CONCEPTS = U(r"\u4e2a\u77e5\u8bc6\u70b9\u672a\u5728\u672c\u7ae0\u5c55\u5f00\u3002")
 CHINESE_COLON = U(r"\uff1a")
 SOURCE_LABEL = U(r"\u6765\u6e90\uff1a")
+PLATFORM_EXAM_NOISE_RE = re.compile(r"(exam-ans|mooc-exam-p\d|系统检测到你|强制收卷|切屏|页面不存在|暂时不能访问)", re.I)
 
 
 def now_text() -> str:
@@ -264,11 +269,15 @@ def summarize_assignments(course_dir: Path, max_questions: int) -> tuple[list[st
     assignment_lines: list[str] = []
     total_questions = 0
     for index, path in enumerate(sorted((course_dir / "assignments_md").glob("*.questions.json")), start=1):
+        if PLATFORM_EXAM_NOISE_RE.search(path.as_posix()):
+            continue
         payload = load_questions(path)
         questions = payload.get("questions") or []
         total_questions += len(questions)
         md_path = path.with_name(path.name.replace(".questions.json", ".md"))
         title = payload.get("title") or path.stem
+        if PLATFORM_EXAM_NOISE_RE.search(title):
+            continue
         assignment_lines.append(f"{index}. {title}: {len(questions)} {QUESTION_UNIT}, Markdown `{rel(md_path, course_dir)}`, JSON `{rel(path, course_dir)}`")
         for q_index, question in enumerate(questions[:max_questions], start=1):
             text = question.get("question") if isinstance(question, dict) else str(question)
@@ -276,6 +285,50 @@ def summarize_assignments(course_dir: Path, max_questions: int) -> tuple[list[st
         if len(questions) > max_questions:
             assignment_lines.append(f"   - {MORE_FILES} {len(questions) - max_questions} {NOT_EXPANDED_QUESTIONS}")
     return assignment_lines, total_questions
+
+
+def summarize_exams(course_dir: Path, max_questions: int) -> tuple[list[str], int]:
+    exam_lines: list[str] = []
+    total_questions = 0
+    question_files = sorted((course_dir / "exams_md").glob("*.questions.json"), key=lambda p: p.as_posix().casefold())
+    for index, path in enumerate(question_files, start=1):
+        payload = load_questions(path)
+        questions = payload.get("questions") or []
+        total_questions += len(questions)
+        md_path = path.with_name(path.name.replace(".questions.json", ".md"))
+        title = payload.get("title") or path.stem
+        exam_lines.append(f"{index}. {title}: {len(questions)} {QUESTION_UNIT}, Markdown `{rel(md_path, course_dir)}`, JSON `{rel(path, course_dir)}`")
+        for q_index, question in enumerate(questions[:max_questions], start=1):
+            text = question.get("question") if isinstance(question, dict) else str(question)
+            q_type = question.get("type") if isinstance(question, dict) else ""
+            prefix = f"{q_type} " if q_type else ""
+            exam_lines.append(f"   - Q{q_index}: {prefix}{truncate(text, 140)}")
+        if len(questions) > max_questions:
+            exam_lines.append(f"   - {MORE_FILES} {len(questions) - max_questions} {NOT_EXPANDED_QUESTIONS}")
+
+    manifest = read_json(course_dir / "manifests" / "course_manifest.json", {"items": []})
+    exam_items = [item for item in manifest.get("items", []) if isinstance(item, dict) and item.get("kind") == "exam"]
+    if exam_items:
+        status_counts = Counter(item.get("status") or "pending" for item in exam_items)
+        summary = ", ".join(f"{status}={count}" for status, count in sorted(status_counts.items()))
+        exam_lines.insert(0, f"- manifest: {summary}")
+        unavailable_rows = [
+            item
+            for item in exam_items
+            if item.get("status") in {"unavailable", "failed_nonfatal", "failed"} or item.get("error")
+        ]
+        for item in unavailable_rows[:30]:
+            title = item.get("title") or item.get("url") or "exam"
+            status = item.get("status") or "unknown"
+            reason = item.get("error") or item.get("metadata", {}).get("reason") or ""
+            exam_lines.append(f"- `{status}` {truncate(title, 100)}: {truncate(reason, 220)}")
+        if len(unavailable_rows) > 30:
+            exam_lines.append(f"- {MORE_FILES} {len(unavailable_rows) - 30} 个不可用/失败考试记录未展开。")
+
+    if not question_files:
+        exam_lines.append(f"- {NO_EXAMS}")
+    exam_lines.append(f"- {EXAM_FALLBACK_HINT}")
+    return exam_lines, total_questions
 
 
 def summarize_notebooklm(course_dir: Path) -> list[str]:
@@ -321,6 +374,7 @@ def build_report(course_dir: Path, max_items: int, max_questions: int) -> str:
     counts = db_counts(course_dir)
     title = meta.get("course_title") or course_dir.name
     downloaded, failed_materials, conversion_failed = summarize_materials(course_dir, max_items=max_items)
+    exams, exam_questions = summarize_exams(course_dir, max_questions=max_questions)
     assignments, assignment_questions = summarize_assignments(course_dir, max_questions=max_questions)
     chapter_concepts = summarize_chapter_concepts(course_dir)
 
@@ -331,7 +385,7 @@ def build_report(course_dir: Path, max_items: int, max_questions: int) -> str:
         f"- {COURSE_DIR}: `{course_dir}`",
         f"- {SOURCE_PAGE}: {meta.get('source_url', '')}",
         f"- {GENERATED_AT}: {now_text()}",
-        f"- {DATABASE}: source_files={counts.get('source_files', 0)}, documents={counts.get('documents', 0)}, assignments={counts.get('assignments', 0)}, questions={counts.get('questions', assignment_questions)}, concepts={counts.get('concepts', 0)}, practice_items={counts.get('practice_items', 0)}",
+        f"- {DATABASE}: source_files={counts.get('source_files', 0)}, documents={counts.get('documents', 0)}, assignments={counts.get('assignments', 0)}, questions={counts.get('questions', assignment_questions + exam_questions)}, concepts={counts.get('concepts', 0)}, practice_items={counts.get('practice_items', 0)}",
         "",
         f"## {CHAPTER_KNOWLEDGE}",
     ]
@@ -342,6 +396,8 @@ def build_report(course_dir: Path, max_items: int, max_questions: int) -> str:
     lines.extend(failed_materials or [NO_SKIPPED])
     lines.extend(["", f"## {CONVERSION_FAILURES}"])
     lines.extend(conversion_failed or [NO_CONVERSION_FAILURES])
+    lines.extend(["", f"## {EXAMS}"])
+    lines.extend(exams or [NO_EXAMS])
     lines.extend(["", f"## {ASSIGNMENTS}"])
     lines.extend(assignments or [NO_ASSIGNMENTS])
     lines.extend(["", f"## {OUTPUTS}"])
