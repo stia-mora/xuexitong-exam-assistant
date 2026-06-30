@@ -37,3 +37,9 @@
 - 不得渲染无 `knowledge_ids` 的题。
 - 不得把 `teacher_knowledge_seeds.json` 的标题种子直接当成页面知识点。
 - 不得在 HTML 渲染阶段生成新题。
+
+## Review Priority And Sticky Nav
+
+- `generated/knowledge_bank.json` 中每个最终知识点必须包含 `review_priority: P0|P1|P2`，且该字段由 LLM 在知识库审核阶段给出。
+- `practice.html` 必须在顶部优先级区域展示 P0/P1/P2 知识点，并在每张知识点卡片上显示对应标签。
+- `practice.html` 的章节按钮区域必须固定在页面上方，用户滚动学习时仍能快速跳转章节。

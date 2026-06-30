@@ -24,6 +24,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 MIN_APPROVED_QUESTIONS = 150
 TARGET_QUESTIONS = 180
 MAX_SOFT_QUESTIONS = 220
+REVIEW_PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2}
 TYPE_ORDER = ["选择题", "判断题", "填空题", "主观题"]
 DEFAULT_MOCK_BLUEPRINT = {"选择题": 30, "判断题": 15, "填空题": 10, "主观题": 5}
 APPROVED_DECISIONS = {"reuse_full", "add_analysis", "infer_answer", "teacher_knowledge_generated"}
@@ -70,6 +71,23 @@ def safe_int(value: Any, default: int = 10) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def normalize_review_priority(item: dict[str, Any]) -> str:
+    raw = clean_text(
+        item.get("review_priority")
+        or item.get("priority_level")
+        or item.get("priority_label")
+        or item.get("exam_priority")
+    ).upper()
+    if raw in REVIEW_PRIORITY_ORDER:
+        return raw
+    match = re.search(r"\b(P[0-2])\b", raw)
+    return match.group(1) if match else ""
+
+
+def priority_rank(value: Any) -> int:
+    return REVIEW_PRIORITY_ORDER.get(clean_text(value).upper(), 9)
 
 
 def esc(value: Any) -> str:
@@ -165,6 +183,9 @@ def source_label(source_kind: str, explicit: str = "") -> str:
         "xxt_reused": "题源：学习通原题",
         "xxt_analysis_llm": "题源：学习通原题+LLM补解析",
         "xxt_answer_inferred": "题源：学习通原题+LLM推断答案",
+        "xxt_exam_reused": "题源：学习通考试原题",
+        "xxt_exam_analysis_llm": "题源：学习通考试原题+LLM补解析",
+        "xxt_exam_answer_inferred": "题源：学习通考试原题+LLM推断答案",
         "teacher_knowledge_generated": "题源：老师知识点生成",
     }
     return table.get(source_kind, "题源：已审核题库")
@@ -202,6 +223,7 @@ def normalize_knowledge_item(item: dict[str, Any], index: int) -> dict[str, Any]
         "source_refs": normalize_text_list(item.get("source_refs") or item.get("refs")),
         "source_kind": source_kind,
         "priority": 0 if source_kind == "teacher_focus" else safe_int(item.get("priority"), 10),
+        "review_priority": normalize_review_priority(item),
         "reviewed_by_llm": item.get("reviewed_by_llm") is True,
         "quality_status": clean_text(item.get("quality_status") or ""),
     }
@@ -224,6 +246,7 @@ def knowledge_bank_hash(knowledge_items: list[dict[str, Any]]) -> str:
                 "source_refs": item.get("source_refs"),
                 "source_kind": item.get("source_kind"),
                 "priority": item.get("priority"),
+                "review_priority": item.get("review_priority"),
             }
         )
     return hashlib.sha1(canonical_json(stable_items).encode("utf-8")).hexdigest()
@@ -259,6 +282,8 @@ def load_validated_knowledge_bank(course_dir: Path) -> tuple[list[dict[str, Any]
             errors.append(f"knowledge #{index} missing exam_tips")
         if not normalized["source_refs"]:
             errors.append(f"knowledge #{index} missing source_refs")
+        if normalized["review_priority"] not in REVIEW_PRIORITY_ORDER:
+            errors.append(f"knowledge #{index} missing review_priority P0/P1/P2")
         if normalized["reviewed_by_llm"] is not True:
             errors.append(f"knowledge #{index} is not marked reviewed_by_llm")
         if normalized["quality_status"] != "approved":
@@ -270,6 +295,7 @@ def load_validated_knowledge_bank(course_dir: Path) -> tuple[list[dict[str, Any]
     normalized_items.sort(
         key=lambda item: (
             chapter_sort_key(item.get("chapter") or {}),
+            priority_rank(item.get("review_priority")),
             safe_int(item.get("priority"), 10),
             clean_text(item.get("title")),
             clean_text(item.get("knowledge_id")),
@@ -326,8 +352,16 @@ def normalize_bank_item(item: dict[str, Any], audit: dict[str, Any] | None, inde
     chapter = item.get("chapter") if isinstance(item.get("chapter"), dict) else audit.get("chapter")
     if not isinstance(chapter, dict):
         chapter = infer_chapter(title=item.get("chapter_title") or audit.get("chapter_title") or "", path="")
-    source_kind = clean_text(item.get("source_kind") or audit.get("decision") or audit.get("source_kind"))
-    if source_kind == "add_analysis":
+    decision = clean_text(audit.get("decision"))
+    source_kind = clean_text(item.get("source_kind") or audit.get("source_kind") or decision)
+    if source_kind == "xxt_exam":
+        if decision == "add_analysis":
+            source_kind = "xxt_exam_analysis_llm"
+        elif decision == "infer_answer":
+            source_kind = "xxt_exam_answer_inferred"
+        else:
+            source_kind = "xxt_exam_reused"
+    elif source_kind == "add_analysis":
         source_kind = "xxt_analysis_llm"
     elif source_kind == "infer_answer":
         source_kind = "xxt_answer_inferred"
@@ -500,6 +534,7 @@ def group_knowledge_by_chapter(knowledge_bank: list[dict[str, Any]]) -> dict[str
         grouped[key] = sorted(
             rows,
             key=lambda item: (
+                priority_rank(item.get("review_priority")),
                 safe_int(item.get("priority"), 10),
                 0 if item.get("source_kind") == "teacher_focus" else 1,
                 clean_text(item.get("title")),
@@ -524,14 +559,36 @@ def render_inline_list(label: str, values: list[str]) -> str:
     return f"<p><strong>{esc(label)}：</strong>{esc('；'.join(values))}</p>"
 
 
+def render_review_priority_cards(knowledge_bank: list[dict[str, Any]]) -> str:
+    labels = {
+        "P0": "P0 必会高频",
+        "P1": "P1 重点掌握",
+        "P2": "P2 查漏补缺",
+    }
+    cards: list[str] = []
+    for level in ("P0", "P1", "P2"):
+        rows = [item for item in knowledge_bank if item.get("review_priority") == level]
+        titles = [clean_text(item.get("title")) for item in rows[:5] if clean_text(item.get("title"))]
+        if not titles:
+            titles = ["暂无知识点"]
+        body = "".join(f"<li>{esc(title)}</li>" for title in titles)
+        cards.append(
+            f'<div class="priority {level.lower()}"><h3>{esc(labels[level])}</h3>'
+            f'<ul><li>{len(rows)} 个知识点</li>{body}</ul></div>'
+        )
+    return "".join(cards)
+
+
 def render_knowledge_card(item: dict[str, Any]) -> str:
     source = "老师重点" if item.get("source_kind") == "teacher_focus" else "课件提炼"
+    review_priority = item.get("review_priority") or "P2"
+    priority_css = f"badge-{clean_text(review_priority).lower()}"
     refs = "，".join(item.get("source_refs") or [])
     pitfalls = item.get("pitfalls") or []
     trap_html = "".join(f'<div class="trap">{esc(text)}</div>' for text in pitfalls)
     refs_html = f'<p class="knowledge-ref">来源：{esc(refs)}</p>' if refs else ""
     return f"""<div class="knowledge" data-knowledge-id="{esc(item.get('knowledge_id'))}">
-<h4>{esc(item.get('title'))}<span class="q-source">{esc(source)}</span></h4>
+<h4>{esc(item.get('title'))}<span class="priority-tag {esc(priority_css)}">{esc(review_priority)}</span><span class="q-source">{esc(source)}</span></h4>
 <p><strong>学习目标：</strong>{esc(item.get('learning_goal'))}</p>
 {render_inline_list("核心要点", item.get("key_points") or [])}
 {render_inline_list("公式/例子", item.get("formula_examples") or [])}
@@ -611,16 +668,7 @@ def render_practice_page(
     chapters, grouped = group_by_chapter(question_bank)
     knowledge_by_chapter = group_knowledge_by_chapter(knowledge_bank)
     knowledge_by_id = {item.get("knowledge_id"): item for item in knowledge_bank}
-    source_counts = Counter(item.get("source_kind") for item in question_bank)
-    priority_cards = []
-    for label, keys in [
-        ("P0 原题复用与补解析", ("xxt_reused", "xxt_analysis_llm")),
-        ("P1 推断答案题", ("xxt_answer_inferred",)),
-        ("P2 老师知识点生成", ("teacher_knowledge_generated",)),
-    ]:
-        count = sum(source_counts.get(key, 0) for key in keys)
-        css = "p0" if "P0" in label else "p1" if "P1" in label else "p2"
-        priority_cards.append(f'<div class="priority {css}"><h3>{esc(label)}</h3><ul><li>{count} 题</li><li>全部已逐题审核</li></ul></div>')
+    priority_cards = render_review_priority_cards(knowledge_bank)
     chapter_blocks = []
     q_index = 1
     for chapter_index, chapter in enumerate(chapters, start=1):
@@ -636,6 +684,7 @@ def render_practice_page(
                     seen_knowledge.add(kid)
         knowledge_rows.sort(
             key=lambda item: (
+                priority_rank(item.get("review_priority")),
                 0 if item.get("source_kind") == "teacher_focus" else 1,
                 safe_int(item.get("priority"), 10),
                 clean_text(item.get("title")),
@@ -659,7 +708,7 @@ def render_practice_page(
 <div class="header"><h1>{esc(meta.get('course_title'))} 期末复习</h1><div class="meta">{len(knowledge_bank)} 个知识点 · 最终题库 {len(question_bank)} 题 · 先学后练</div></div>
 <div class="entry-cards"><a href="questions.html" class="entry-card"><div class="icon">题</div><h3>全部题库</h3><p>{len(question_bank)}题 · 每题含答案与解析</p></a><a href="mock_exam.html" class="entry-card"><div class="icon">卷</div><h3>模拟卷</h3><p>从已审核题库抽取，不生成未审核题</p></a></div>
 <div class="summary"><h2>学习路径摘要</h2><div class="stats"><div class="stat"><strong>{len(knowledge_bank)}</strong> 审核知识点</div><div class="stat"><strong>{len(question_bank)}</strong> 审核通过题</div><div class="stat"><strong>{len(chapters)}</strong> 章节</div></div><p>流程已按“课件/老师重点 → 知识库 → 题库审核 → 先学后练页面”校验，题目均绑定知识点、audit_id、答案和解析。</p>{f'<ul>{warning_html}</ul>' if warning_html else ''}</div>
-<div class="priority-map">{''.join(priority_cards)}</div>
+<div class="priority-map">{priority_cards}</div>
 <div class="nav">{''.join(f'<a href="#ch{i}">{esc(ch.get("title") or UNKNOWN_CHAPTER)}</a>' for i, ch in enumerate(chapters, start=1))}</div>
 <div class="exam-tips"><h2>得分导向提示</h2><ul><li>先读每章知识点卡片，抓定义、判定条件、公式和易错点。</li><li>再做同章精选题，把知识点映射到题干关键词和标准答案。</li><li>最后到全部题库和模拟卷查漏补缺。</li></ul></div>
 {''.join(chapter_blocks)}

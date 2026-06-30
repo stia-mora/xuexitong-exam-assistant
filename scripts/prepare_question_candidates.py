@@ -21,6 +21,7 @@ from chapter_utils import UNKNOWN_CHAPTER, infer_chapter
 
 
 QUESTIONY_SOURCE_RE = re.compile(r"(题库|习题|练习|测试|测验|作业|试卷|模拟|样卷|真题|考试|quiz|exam|mock|sample)", re.I)
+PLATFORM_EXAM_NOISE_RE = re.compile(r"(exam-ans|mooc-exam-p\d|系统检测到你|强制收卷|切屏|页面不存在|暂时不能访问)", re.I)
 TYPE_RE = re.compile(r"(单选题|多选题|选择题|判断题|填空题|简答题|论述题|问答题|材料题|计算题|证明题|主观题)")
 NUMBERED_QUESTION_RE = re.compile(r"^\s*(?:第\s*)?(?P<num>\d{1,3}|[一二三四五六七八九十百]{1,5})\s*(?:题|[.、．)])\s*(?P<body>.+)?$")
 TYPED_QUESTION_RE = re.compile(r"^\s*[【\[]?\s*(?P<type>单选题|多选题|选择题|判断题|填空题|简答题|论述题|问答题|材料题|计算题|证明题|主观题)\s*[】\]]?\s*(?P<body>.+)?$")
@@ -243,6 +244,48 @@ def dedupe(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def load_assignment_candidates(course_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for path in sorted((course_dir / "assignments_md").glob("*.questions.json"), key=lambda p: p.as_posix().casefold()):
+        if PLATFORM_EXAM_NOISE_RE.search(path.as_posix()):
+            continue
+        payload = read_json(path, {})
+        if not isinstance(payload, dict):
+            continue
+        title = clean_text(payload.get("title") or path.stem)
+        if PLATFORM_EXAM_NOISE_RE.search(title):
+            continue
+        markdown_path = path.with_name(path.name.replace(".questions.json", ".md"))
+        chapter = infer_chapter(title=title, path=rel(markdown_path, course_dir), headings=[])
+        for item in payload.get("questions", []) or []:
+            if not isinstance(item, dict):
+                continue
+            stem = clean_text(item.get("question") or "")
+            if PLATFORM_EXAM_NOISE_RE.search(stem):
+                continue
+            if not stem:
+                continue
+            rows.append(
+                candidate_record(
+                    course_dir=course_dir,
+                    stem=stem,
+                    q_type=item.get("type") or "unknown",
+                    options=item.get("options") or [],
+                    answer=item.get("answer") or "",
+                    analysis=item.get("explanation") or item.get("analysis") or "",
+                    chapter=chapter,
+                    source_kind="xxt_assignment",
+                    source_refs=[rel(path, course_dir)],
+                    metadata={
+                        "assignment_title": title,
+                        "number": item.get("number"),
+                        "extraction_method": item.get("extraction_method") or payload.get("extraction_method") or "",
+                    },
+                )
+            )
+    return rows
+
+
+def load_exam_candidates(course_dir: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in sorted((course_dir / "exams_md").glob("*.questions.json"), key=lambda p: p.as_posix().casefold()):
         payload = read_json(path, {})
         if not isinstance(payload, dict):
             continue
@@ -264,12 +307,15 @@ def load_assignment_candidates(course_dir: Path) -> list[dict[str, Any]]:
                     answer=item.get("answer") or "",
                     analysis=item.get("explanation") or item.get("analysis") or "",
                     chapter=chapter,
-                    source_kind="xxt_assignment",
+                    source_kind="xxt_exam",
                     source_refs=[rel(path, course_dir)],
                     metadata={
-                        "assignment_title": title,
+                        "exam_title": title,
                         "number": item.get("number"),
-                        "extraction_method": item.get("extraction_method") or payload.get("extraction_method") or "",
+                        "points": item.get("points") or "",
+                        "my_answer": item.get("my_answer") or "",
+                        "source_url": payload.get("source_url") or "",
+                        "extraction_method": item.get("extraction_method") or payload.get("extraction_method") or "xuexitong_exam",
                     },
                 )
             )
@@ -412,7 +458,10 @@ def collect_knowledge_seeds(course_dir: Path) -> list[dict[str, Any]]:
 
 
 def prepare(course_dir: Path) -> dict[str, int]:
-    candidates = dedupe(load_assignment_candidates(course_dir) + load_material_candidates(course_dir))
+    exam_candidates = load_exam_candidates(course_dir)
+    assignment_candidates = load_assignment_candidates(course_dir)
+    material_candidates = load_material_candidates(course_dir)
+    candidates = dedupe(exam_candidates + assignment_candidates + material_candidates)
     knowledge_seeds = collect_knowledge_seeds(course_dir)
     generated_dir = course_dir / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
@@ -425,6 +474,9 @@ def prepare(course_dir: Path) -> dict[str, int]:
         "items": candidates,
         "summary": {
             "candidate_count": len(candidates),
+            "exam_candidate_count": len(exam_candidates),
+            "assignment_candidate_count": len(assignment_candidates),
+            "material_candidate_count": len(material_candidates),
             "type_counts": dict(type_counts),
             "quality_flag_counts": dict(flag_counts),
             "knowledge_seed_count": len(knowledge_seeds),
@@ -432,7 +484,13 @@ def prepare(course_dir: Path) -> dict[str, int]:
     }
     write_json(generated_dir / "question_candidates.json", payload)
     write_json(generated_dir / "teacher_knowledge_seeds.json", {"schema_version": 1, "updated_at": utc_now(), "items": knowledge_seeds})
-    return {"candidates": len(candidates), "knowledge_seeds": len(knowledge_seeds)}
+    return {
+        "candidates": len(candidates),
+        "exam_candidate_count": len(exam_candidates),
+        "assignment_candidate_count": len(assignment_candidates),
+        "material_candidate_count": len(material_candidates),
+        "knowledge_seeds": len(knowledge_seeds),
+    }
 
 
 def main() -> int:

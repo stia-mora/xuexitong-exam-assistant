@@ -27,6 +27,7 @@ def make_course(
     include_candidates: bool = True,
     audit_all_candidates: bool = True,
     include_knowledge_bank: bool = True,
+    include_knowledge_priority: bool = True,
     include_question_knowledge_ids: bool = True,
     stale_knowledge_hash: bool = False,
 ) -> tempfile.TemporaryDirectory:
@@ -49,6 +50,7 @@ def make_course(
             "source_refs": ["materials_md/test.md"],
             "source_kind": "course_material",
             "priority": 10,
+            "review_priority": "P1",
             "reviewed_by_llm": True,
             "quality_status": "approved",
         },
@@ -64,13 +66,20 @@ def make_course(
             "source_refs": ["input/teacher_focus.md"],
             "source_kind": "teacher_focus",
             "priority": 0,
+            "review_priority": "P0",
             "reviewed_by_llm": True,
             "quality_status": "approved",
         },
     ]
+    if not include_knowledge_priority:
+        for item in knowledge_items:
+            item.pop("review_priority", None)
     if include_knowledge_bank:
         write_json(course / "generated" / "knowledge_bank.json", {"items": knowledge_items})
-        _, _, knowledge_hash = renderer.load_validated_knowledge_bank(course)
+        if include_knowledge_priority:
+            _, _, knowledge_hash = renderer.load_validated_knowledge_bank(course)
+        else:
+            knowledge_hash = "invalid-missing-review-priority"
     else:
         knowledge_hash = "missing"
 
@@ -152,6 +161,8 @@ class QuestionAuditWorkflowTest(unittest.TestCase):
         self.assertIn("知识点学习", practice)
         self.assertLess(practice.index("知识点学习"), practice.index("精选练习"))
         self.assertLess(practice.index("老师重点"), practice.index("课件提炼"))
+        self.assertIn("P0 必会高频", practice)
+        self.assertIn("position: sticky", practice)
         self.assertIn('class="ch"', questions)
         self.assertNotIn("practice.generated.html", practice)
         self.assertNotIn("资料未提供完整解析", questions)
@@ -176,6 +187,13 @@ class QuestionAuditWorkflowTest(unittest.TestCase):
         result = self.run_render(tmp.course, 4)  # type: ignore[attr-defined]
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("knowledge_bank_hash", result.stderr + result.stdout)
+
+    def test_blocks_knowledge_without_review_priority(self) -> None:
+        tmp = make_course(question_count=4, include_knowledge_priority=False)
+        self.addCleanup(tmp.cleanup)
+        result = self.run_render(tmp.course, 4)  # type: ignore[attr-defined]
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review_priority P0/P1/P2", result.stderr + result.stdout)
 
     def test_blocks_below_minimum(self) -> None:
         tmp = make_course(question_count=2)

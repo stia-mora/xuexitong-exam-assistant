@@ -92,6 +92,10 @@ def main() -> int:
     parser.add_argument("--office-timeout", type=int, default=240)
     parser.add_argument("--material-limit", type=int, default=0)
     parser.add_argument("--assignment-limit", type=int, default=0)
+    parser.add_argument("--exam-limit", type=int, default=0)
+    parser.add_argument("--pause-each-exam", action="store_true", help="Pause on each visible exam page before capture.")
+    parser.add_argument("--skip-exams", action="store_true", help="Do not capture exam/review pages during collection.")
+    parser.add_argument("--require-exams", action="store_true", help="Fail collection if no exam questions are captured.")
     parser.add_argument("--teacher-mock", default="", help="Deprecated for final rendering; kept for CLI compatibility.")
     parser.add_argument("--questions-per-chapter", type=int, default=80, help="Deprecated; final rendering uses audited question_bank.json.")
     parser.add_argument("--ai-fill-min-per-chapter", type=int, default=25, help="Deprecated; LLM supplementing happens during question audit.")
@@ -150,6 +154,14 @@ def main() -> int:
             collect_cmd.extend(["--material-limit", str(args.material_limit)])
         if args.assignment_limit:
             collect_cmd.extend(["--assignment-limit", str(args.assignment_limit)])
+        if args.exam_limit:
+            collect_cmd.extend(["--exam-limit", str(args.exam_limit)])
+        if args.pause_each_exam:
+            collect_cmd.append("--pause-each-exam")
+        if args.skip_exams:
+            collect_cmd.append("--skip-exams")
+        if args.require_exams:
+            collect_cmd.append("--require-exams")
         run_step("collect", collect_cmd, cwd=workspace_root, env=env)
         detected_course_dir = read_last_course_dir(data_root)
         if detected_course_dir is not None:

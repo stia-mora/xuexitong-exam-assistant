@@ -10,18 +10,44 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlparse
 
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+    from playwright.sync_api import sync_playwright
+except ModuleNotFoundError:  # Keep non-browser helper imports usable in tests.
+    PlaywrightTimeoutError = TimeoutError
+    sync_playwright = None
 
 from extract_assignments import extract_assignment
+from extract_exams import ExamUnavailableError, extract_exam
 from manifest import CourseManifest
 from selectors import EXTRACT_LINKS_SCRIPT, guess_filename, is_assignment_link, is_material_link, safe_filename, slugify
 
 DEFAULT_CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 DEFAULT_HOME = "https://i.chaoxing.com/"
-COURSE_TAB_LABELS = ("\u4f5c\u4e1a", "\u8d44\u6599", "\u4efb\u52a1", "\u7ae0\u8282")
+COURSE_TAB_LABELS = ("\u4f5c\u4e1a", "\u8003\u8bd5", "\u8d44\u6599", "\u4efb\u52a1", "\u7ae0\u8282")
+GENERIC_COURSE_TABS = {"\u4f5c\u4e1a", "\u8003\u8bd5", "\u4efb\u52a1", "\u8d44\u6599", "\u7ae0\u8282"}
+EXAM_URL_MARKERS = ("exam-ans", "/exam/", "exam/test", "papermark", "revisionpapermark", "qbank")
+EXAM_TEXT_MARKERS = ("\u8003\u8bd5", "\u8bd5\u5377", "\u5ba2\u89c2\u9898", "\u671f\u672b", "\u671f\u4e2d", "\u8865\u8003")
+EXAM_BAD_TEXT_MARKERS = (
+    "404",
+    "400",
+    "\u5ef6\u65f6\u539f\u56e0",
+    "\u5ef6\u65f6\u65f6\u957f",
+    "\u5207\u5c4f",
+    "\u5f3a\u5236\u6536\u5377",
+    "\u53d6\u6d88",
+    "\u77e5\u9053\u4e86",
+    "\u8fdb\u5165\u8003\u8bd5",
+    "\u9000\u51fa\u8003\u8bd5",
+    "\u7ee7\u7eed\u8003\u8bd5",
+    "\u89c6\u9891",
+    "\u8bfe\u4ef6",
+    "\u8ba8\u8bba",
+    "\u4efb\u52a1\u70b9",
+)
+EXAM_BAD_URL_RE = re.compile(r"/exam/(?:\d+|exam-list)(?:$|[?#])", re.I)
 
 CLICK_VISIBLE_TEXT_SCRIPT = r"""
 (labels) => {
@@ -109,7 +135,9 @@ def ensure_course_dirs(course_dir: Path) -> None:
     for rel in (
         "raw/materials",
         "raw/assignments_html",
+        "raw/exams_html",
         "assignments_md",
+        "exams_md",
         "materials_md",
         "assets",
         "manifests",
@@ -347,18 +375,45 @@ def merge_links(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def is_assignment_candidate(item: dict[str, Any]) -> bool:
+    if is_exam_candidate(item):
+        return False
     text = (item.get("text") or item.get("title") or "").strip()
     href = item.get("href") or ""
     onclick = (item.get("onclick") or "").lower()
     lowered_href = href.lower().strip()
-    generic_tabs = {'作业', '考试', '任务', '资料', '章节'}
-    if text in generic_tabs and "gotask" not in onclick:
+    if any(marker in text for marker in EXAM_BAD_TEXT_MARKERS):
+        return False
+    if any(marker in f"{lowered_href} {onclick}" for marker in EXAM_URL_MARKERS):
+        return False
+    if text in GENERIC_COURSE_TABS and "gotask" not in onclick:
         if not href or lowered_href.startswith("javascript:") or "mycourse/" in lowered_href:
             return False
     if "gotask" in onclick and text:
         return True
     if lowered_href.startswith(("http://", "https://")):
         return is_assignment_link(text, href)
+    return False
+
+
+def is_exam_candidate(item: dict[str, Any]) -> bool:
+    text = (item.get("text") or item.get("title") or "").strip()
+    href = (item.get("href") or "").strip()
+    onclick = (item.get("onclick") or "").strip()
+    data = (item.get("data") or "").strip()
+    lowered = f"{text} {href} {onclick} {data}".lower()
+    lowered_href = href.lower()
+    if any(marker in text for marker in EXAM_BAD_TEXT_MARKERS):
+        return False
+    if EXAM_BAD_URL_RE.search(lowered_href):
+        return False
+    if text in GENERIC_COURSE_TABS and not any(marker in lowered_href for marker in EXAM_URL_MARKERS):
+        return False
+    if any(marker in lowered for marker in EXAM_URL_MARKERS):
+        return True
+    if any(marker in text for marker in EXAM_TEXT_MARKERS) and (href or onclick or data):
+        if "mycourse/" in lowered_href and "exam" not in lowered_href:
+            return False
+        return True
     return False
 
 
@@ -378,10 +433,11 @@ def is_material_candidate(item: dict[str, Any]) -> bool:
     return is_material_link(text, href)
 
 
-def classify_links(links: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def classify_links(links: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     material_links = [item for item in links if is_material_candidate(item)]
+    exam_links = [item for item in links if is_exam_candidate(item)]
     assignment_links = [item for item in links if is_assignment_candidate(item)]
-    return material_links, assignment_links
+    return material_links, assignment_links, exam_links
 
 
 def material_sort_key(item: dict[str, Any]) -> tuple[int, str]:
@@ -409,8 +465,22 @@ def assignment_sort_key(item: dict[str, Any]) -> tuple[int, str]:
     return (9, text)
 
 
-def sort_candidates(material_links: list[dict[str, Any]], assignment_links: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    return sorted(material_links, key=material_sort_key), sorted(assignment_links, key=assignment_sort_key)
+def exam_sort_key(item: dict[str, Any]) -> tuple[int, str]:
+    text = item.get("text") or item.get("title") or ""
+    href = (item.get("href") or "").lower()
+    if any(marker in href for marker in EXAM_URL_MARKERS):
+        return (0, text)
+    if item.get("onclick"):
+        return (1, text)
+    return (9, text)
+
+
+def sort_candidates(
+    material_links: list[dict[str, Any]],
+    assignment_links: list[dict[str, Any]],
+    exam_links: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    return sorted(material_links, key=material_sort_key), sorted(assignment_links, key=assignment_sort_key), sorted(exam_links, key=exam_sort_key)
 
 
 def page_score_from_links(page: Any, links: list[dict[str, Any]]) -> int:
@@ -485,9 +555,10 @@ def write_stage_inventory(
     links: list[dict[str, Any]],
     material_links: list[dict[str, Any]],
     assignment_links: list[dict[str, Any]],
+    exam_links: list[dict[str, Any]],
     click_result: dict[str, Any] | None = None,
 ) -> Path:
-    stage_names = {"\u4f5c\u4e1a": "assignments", "\u8d44\u6599": "materials", "\u4efb\u52a1": "tasks", "\u7ae0\u8282": "chapters"}
+    stage_names = {"\u4f5c\u4e1a": "assignments", "\u8003\u8bd5": "exams", "\u8d44\u6599": "materials", "\u4efb\u52a1": "tasks", "\u7ae0\u8282": "chapters"}
     stage_slug = stage_names.get(stage, slugify(stage, "stage"))
     payload = {
         "stage": stage,
@@ -495,6 +566,7 @@ def write_stage_inventory(
         "all_links": links,
         "material_links": material_links,
         "assignment_links": assignment_links,
+        "exam_links": exam_links,
     }
     path = course_dir / "manifests" / f"tab_inventory_{stage_slug}.json"
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
@@ -527,9 +599,9 @@ def explore_material_folders(context: Any, course_dir: Path, base_links: list[di
             continue
         clicks += 1
         links = collect_context_links(context)
-        material_links, assignment_links = classify_links(links)
+        material_links, assignment_links, exam_links = classify_links(links)
         stage = "materials-folder-" + safe_filename(item.get("text") or item.get("title") or "folder", "folder")
-        write_stage_inventory(course_dir, stage, links, material_links, assignment_links, click_result)
+        write_stage_inventory(course_dir, stage, links, material_links, assignment_links, exam_links, click_result)
         merged = merge_links(merged, links)
         new_folders = [candidate for candidate in links if is_material_folder_candidate(candidate) and link_key(candidate) not in seen_folders]
         queue = new_folders + queue
@@ -543,8 +615,8 @@ def explore_course_tabs(context: Any, course_dir: Path, timeout_ms: int = 12000,
         if not click_result.get("clicked"):
             continue
         links = collect_context_links(context)
-        material_links, assignment_links = classify_links(links)
-        write_stage_inventory(course_dir, label, links, material_links, assignment_links, click_result)
+        material_links, assignment_links, exam_links = classify_links(links)
+        write_stage_inventory(course_dir, label, links, material_links, assignment_links, exam_links, click_result)
         merged = merge_links(merged, links)
         if label == "\u8d44\u6599":
             folder_links = explore_material_folders(context, course_dir, links, timeout_ms=timeout_ms)
@@ -664,6 +736,72 @@ def save_assignment_capture(html_text: str, title: str, source_url: str, course_
     }
     questions_path.write_text(json.dumps(questions_payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     return html_path, md_path, questions_path
+
+
+def save_exam_capture(html_text: str, title: str, source_url: str, course_dir: Path) -> tuple[Path, Path, Path, int]:
+    safe_title = safe_filename(title or "exam", "exam")
+    html_path = unique_path(course_dir / "raw" / "exams_html" / f"{safe_title}.html")
+    md_path = course_dir / "exams_md" / f"{html_path.stem}.md"
+    questions_path = course_dir / "exams_md" / f"{html_path.stem}.questions.json"
+    html_path.write_text(html_text, encoding="utf-8", newline="\n")
+    result = extract_exam(html_text, title=safe_title, source_url=source_url)
+    md_path.write_text(result["markdown"], encoding="utf-8", newline="\n")
+    questions_payload = {
+        "schema_version": 1,
+        "title": result["title"],
+        "source_url": result["source_url"],
+        "html_path": str(html_path),
+        "markdown_path": str(md_path),
+        "questions": result["questions"],
+        "question_count": len(result["questions"]),
+        "status": "done",
+    }
+    questions_path.write_text(json.dumps(questions_payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+    return html_path, md_path, questions_path, len(result["questions"])
+
+
+def query_one(parsed_url: Any, key: str, default: str = "") -> str:
+    values = parse_qs(parsed_url.query).get(key) or parse_qs(parsed_url.query).get(key.lower()) or []
+    return values[0] if values else default
+
+
+def exam_detail_url_from_onclick(item: dict[str, Any]) -> str:
+    onclick = item.get("onclick") or ""
+    source_frame_url = item.get("source_frame_url") or item.get("source_page_url") or ""
+    parsed_source = urlparse(source_frame_url)
+    course_id = query_one(parsed_source, "courseid") or query_one(parsed_source, "courseId")
+    class_id = query_one(parsed_source, "clazzid") or query_one(parsed_source, "classId")
+    ut = query_one(parsed_source, "ut", "s")
+    paper_id = ""
+
+    match = re.search(r"viewExamAnswer\(\s*'[^']*'\s*,\s*'(?P<paper_id>[^']+)'", onclick)
+    if match:
+        paper_id = match.group("paper_id")
+
+    if not paper_id:
+        match = re.search(r"lookUpPaper\(\s*'[^']*'\s*,\s*'(?P<course_id>[^']*)'\s*,\s*'(?P<paper_id>[^']+)'", onclick)
+        if match:
+            course_id = course_id or match.group("course_id")
+            paper_id = match.group("paper_id")
+
+    if not (course_id and class_id and paper_id):
+        return ""
+
+    back_url = ""
+    if parsed_source.query:
+        back_url = f"/exam-ans/mooc2/exam/exam-list?{parsed_source.query}"
+    params = {
+        "courseId": course_id,
+        "classId": class_id,
+        "p": "1",
+        "id": paper_id,
+        "ut": ut,
+        "newMooc": "true",
+        "qbanksystem": "1",
+    }
+    if back_url:
+        params["qbankbackurl"] = back_url
+    return "https://mooc1.chaoxing.com/exam-ans/exam/test/reVersionPaperMarkContentNew?" + urlencode(params)
 
 
 def combined_page_html(page: Any) -> str:
@@ -788,14 +926,67 @@ def capture_assignment(context: Any, item: dict[str, Any], course_dir: Path, tim
         page.close()
 
 
-def write_link_inventory(course_dir: Path, links: list[dict[str, Any]], material_links: list[dict[str, Any]], assignment_links: list[dict[str, Any]]) -> None:
+def capture_exam_from_browser(context: Any, item: dict[str, Any], course_dir: Path, timeout_ms: int, pause: bool) -> tuple[Path, Path, Path, int]:
+    click_result, target_page = click_inventory_item(context, item, timeout_ms=timeout_ms)
+    if not click_result.get("clicked") or target_page is None:
+        raise ExamUnavailableError("exam item could not be opened from the current browser context")
+    if pause:
+        wait_for_user("Exam page is open. Expand visible details if needed, then press Enter to continue: ")
+    title = item.get("title") or item.get("text") or target_page.title() or "exam"
+    html_text = combined_page_html(target_page)
+    source_url = click_result.get("page_url") or target_page.url
+    return save_exam_capture(html_text, title, source_url, course_dir)
+
+
+def capture_exam(context: Any, item: dict[str, Any], course_dir: Path, timeout_ms: int, pause: bool) -> tuple[Path, Path, Path, int]:
+    url = item.get("href") or ""
+    if urlparse(url).scheme not in {"http", "https"}:
+        url = exam_detail_url_from_onclick(item) or url
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return capture_exam_from_browser(context, item, course_dir, timeout_ms, pause)
+    page = context.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+        try:
+            page.wait_for_load_state("networkidle", timeout=min(timeout_ms, 12000))
+        except PlaywrightTimeoutError:
+            pass
+        if pause:
+            wait_for_user("Exam page is open. Expand visible details if needed, then press Enter to continue: ")
+        title = item.get("text") or page.title() or "exam"
+        html_text = combined_page_html(page)
+        return save_exam_capture(html_text, title, url, course_dir)
+    finally:
+        page.close()
+
+
+def write_link_inventory(
+    course_dir: Path,
+    links: list[dict[str, Any]],
+    material_links: list[dict[str, Any]],
+    assignment_links: list[dict[str, Any]],
+    exam_links: list[dict[str, Any]],
+) -> None:
     inventory = {
         "all_links": links,
         "material_links": material_links,
         "assignment_links": assignment_links,
+        "exam_links": exam_links,
     }
     path = course_dir / "manifests" / "link_inventory.json"
     path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+
+
+def existing_exam_question_count(course_dir: Path) -> int:
+    total = 0
+    for path in (course_dir / "exams_md").glob("*.questions.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            continue
+        total += len(payload.get("questions") or [])
+    return total
 
 
 def make_course_dir(args: argparse.Namespace) -> Path:
@@ -819,11 +1010,15 @@ def main() -> int:
     parser.add_argument("--max-material-mb", type=float, default=200, help="Skip direct material downloads larger than this size. Set 0 to disable the guard.")
     parser.add_argument("--material-limit", type=int, default=0, help="Optional max material downloads for smoke tests.")
     parser.add_argument("--assignment-limit", type=int, default=0, help="Optional max assignment captures for smoke tests.")
+    parser.add_argument("--exam-limit", type=int, default=0, help="Optional max exam captures for smoke tests.")
     parser.add_argument("--yes", action="store_true", help="Skip confirmation after listing candidates.")
     parser.add_argument("--list-only", action="store_true", help="Only list candidates and write manifests; do not download or capture.")
     parser.add_argument("--skip-login-wait", action="store_true", help="Do not pause for manual login/navigation after opening Chrome.")
     parser.add_argument("--no-explore-tabs", action="store_true", help="Do not click safe course tabs such as assignments/materials before listing candidates.")
     parser.add_argument("--pause-each-assignment", action="store_true", help="Pause on each assignment page so the user can expand dynamic content.")
+    parser.add_argument("--pause-each-exam", action="store_true", help="Pause on each exam page so the user can expand visible details.")
+    parser.add_argument("--skip-exams", action="store_true", help="Do not capture exam/review pages even when exam links are visible.")
+    parser.add_argument("--require-exams", action="store_true", help="Fail collection when no exam questions are captured. Useful for debugging exam extraction.")
     args = parser.parse_args()
     if args.max_material_mb and args.max_material_mb > 0:
         os.environ["QIMOKAISI_MAX_MATERIAL_MB"] = str(args.max_material_mb)
@@ -838,6 +1033,9 @@ def main() -> int:
     executable_path = str(chrome_path) if chrome_path.exists() else None
     if executable_path is None:
         log(f"Chrome executable not found at {chrome_path}; Playwright will try its default browser resolution.")
+
+    if sync_playwright is None:
+        raise SystemExit("Playwright is required for browser collection. Install project dependencies or run scripts/bootstrap_env.ps1 first.")
 
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
@@ -865,10 +1063,10 @@ def main() -> int:
         auto_scroll(page)
         links = collect_context_links(context)
         if not args.no_explore_tabs:
-            log("Exploring safe course tabs: assignments/materials/tasks/chapters")
+            log("Exploring safe course tabs: assignments/exams/materials/tasks/chapters")
             links = explore_course_tabs(context, course_dir, timeout_ms=args.download_timeout_ms)
-        material_links, assignment_links = classify_links(links)
-        material_links, assignment_links = sort_candidates(material_links, assignment_links)
+        material_links, assignment_links, exam_links = classify_links(links)
+        material_links, assignment_links, exam_links = sort_candidates(material_links, assignment_links, exam_links)
         if not args.course and not args.course_slug and args.course_name == "Xuexitong Course":
             detected_meta = detect_course_meta(context, course_dir, args, links)
             detected_slug = slugify(detected_meta.get("course_title") or course_dir.name, "xuexitong-course")
@@ -886,15 +1084,22 @@ def main() -> int:
             material_links = material_links[: args.material_limit]
         if args.assignment_limit > 0:
             assignment_links = assignment_links[: args.assignment_limit]
+        if args.exam_limit > 0:
+            exam_links = exam_links[: args.exam_limit]
+        if args.skip_exams:
+            exam_links = []
 
         print_candidates("Candidate material links", material_links)
         print_candidates("Candidate assignment/quiz links", assignment_links)
-        write_link_inventory(course_dir, links, material_links, assignment_links)
+        print_candidates("Candidate exam links", exam_links)
+        write_link_inventory(course_dir, links, material_links, assignment_links, exam_links)
 
         for item in material_links:
             manifest.upsert("material", item.get("text") or "material", item.get("href") or "", item.get("source_frame_url") or "", item)
         for item in assignment_links:
             manifest.upsert("assignment", item.get("text") or "assignment", item.get("href") or "", item.get("source_frame_url") or "", item)
+        for item in exam_links:
+            manifest.upsert("exam", item.get("text") or item.get("title") or "exam", item.get("href") or "", item.get("source_frame_url") or "", item)
         manifest.save()
 
         if args.list_only:
@@ -903,7 +1108,7 @@ def main() -> int:
             return 0
 
         if should_confirm(args):
-            answer = input("Continue downloading materials and capturing assignments? Type y to continue: ").strip().lower()
+            answer = input("Continue downloading materials and capturing assignments/exams? Type y to continue: ").strip().lower()
             if answer not in {"y", "yes"}:
                 log("Cancelled by user after listing candidates.")
                 context.close()
@@ -938,6 +1143,32 @@ def main() -> int:
                 manifest.mark_failed(manifest_item.id, str(exc))
                 log(f"FAILED assignment: {manifest_item.title}: {exc}")
             manifest.save()
+
+        captured_exam_questions = existing_exam_question_count(course_dir)
+        for item in exam_links:
+            manifest_item = manifest.upsert("exam", item.get("text") or item.get("title") or "exam", item.get("href") or "", item.get("source_frame_url") or "", item)
+            if manifest_item.status == "done":
+                log(f"SKIP exam already done: {manifest_item.title}")
+                continue
+            try:
+                _html_path, md_path, _questions_path, question_count = capture_exam(
+                    context, item, course_dir, args.download_timeout_ms, args.pause_each_exam
+                )
+                captured_exam_questions += question_count
+                manifest.mark_done(manifest_item.id, md_path, course_dir)
+                manifest_item.metadata["question_count"] = question_count
+                log(f"DONE exam: {md_path} ({question_count} questions)")
+            except ExamUnavailableError as exc:
+                manifest.mark_unavailable(manifest_item.id, str(exc))
+                log(f"UNAVAILABLE exam: {manifest_item.title}: {exc}")
+            except Exception as exc:
+                manifest.mark_failed_nonfatal(manifest_item.id, str(exc))
+                log(f"NONFATAL exam failure: {manifest_item.title}: {exc}")
+            manifest.save()
+
+        if args.require_exams and captured_exam_questions == 0:
+            context.close()
+            raise SystemExit("No exam questions were captured and --require-exams was set.")
 
         context.close()
 
